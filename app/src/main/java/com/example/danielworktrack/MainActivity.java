@@ -3,7 +3,9 @@ package com.example.danielworktrack;
 import android.app.TimePickerDialog;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
@@ -20,7 +22,10 @@ import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -123,7 +128,10 @@ public class MainActivity extends AppCompatActivity {
 
         TextView tvEntry = bottomSheet.findViewById(R.id.tvEntryTime);
         TextView tvLeave = bottomSheet.findViewById(R.id.tvLeaveTime);
-        Spinner spinner = bottomSheet.findViewById(R.id.spinnerPlaces);
+        View cardEntry = bottomSheet.findViewById(R.id.cardEntry);
+        View cardLeave = bottomSheet.findViewById(R.id.cardLeave);
+        TextView btnToggleEdit = bottomSheet.findViewById(R.id.btnToggleEdit);
+        AutoCompleteTextView actvPlaces = bottomSheet.findViewById(R.id.actvPlaces);
         Button btnSubmit = bottomSheet.findViewById(R.id.btnSubmit);
         TextView tvDuration = bottomSheet.findViewById(R.id.tvDurationPreview);
         TextView tvError = bottomSheet.findViewById(R.id.tvTimeError);
@@ -135,17 +143,44 @@ public class MainActivity extends AppCompatActivity {
         Calendar leaveCal = Calendar.getInstance();
         leaveCal.setTimeInMillis(System.currentTimeMillis());
 
-        if (tvEntry != null && tvLeave != null && spinner != null && btnSubmit != null && tvDuration != null && tvError != null && progressShift != null) {
+        final boolean[] isEditMode = {false};
+
+        if (tvEntry != null && tvLeave != null && cardEntry != null && cardLeave != null && btnToggleEdit != null && actvPlaces != null && btnSubmit != null && tvDuration != null && tvError != null && progressShift != null) {
             tvEntry.setText(dateFormat.format(entryCal.getTime()));
             tvLeave.setText(dateFormat.format(leaveCal.getTime()));
 
             // Initial validation check
             updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit);
 
+            btnToggleEdit.setOnClickListener(v -> {
+                isEditMode[0] = !isEditMode[0];
+                btnToggleEdit.setText(isEditMode[0] ? "Disable Manual Edit" : "Adjust Times");
+                cardEntry.setAlpha(isEditMode[0] ? 1.0f : 0.8f);
+                cardLeave.setAlpha(isEditMode[0] ? 1.0f : 0.8f);
+                Toast.makeText(this, isEditMode[0] ? "Manual editing enabled" : "Manual editing disabled", Toast.LENGTH_SHORT).show();
+            });
+
+            cardEntry.setOnClickListener(v -> {
+                if (isEditMode[0]) {
+                    showTimePicker(entryCal, tvEntry, () -> 
+                        updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit));
+                }
+            });
+
+            cardLeave.setOnClickListener(v -> {
+                if (isEditMode[0]) {
+                    showTimePicker(leaveCal, tvLeave, () -> 
+                        updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit));
+                }
+            });
+
             // Load whatever is currently cached first
             List<String> places = storageManager.getPlaces();
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, places);
-            spinner.setAdapter(adapter);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.item_spinner, places);
+            actvPlaces.setAdapter(adapter);
+            if (!places.isEmpty()) {
+                actvPlaces.setText(places.get(0), false);
+            }
 
             // Fetch live places immediately when dialog opens to guarantee latest data
             networkManager.fetchPlaces(new okhttp3.Callback() {
@@ -164,18 +199,19 @@ public class MainActivity extends AppCompatActivity {
                             adapter.clear();
                             adapter.addAll(storageManager.getPlaces());
                             adapter.notifyDataSetChanged();
+                            if (actvPlaces.getText().toString().isEmpty() && !storageManager.getPlaces().isEmpty()) {
+                                actvPlaces.setText(storageManager.getPlaces().get(0), false);
+                            }
                         });
                     }
                 }
             });
 
-            tvEntry.setOnClickListener(v -> showTimePicker(entryCal, tvEntry, () -> 
-                    updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit)));
-            tvLeave.setOnClickListener(v -> showTimePicker(leaveCal, tvLeave, () -> 
-                    updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit)));
+            // Removed direct TV click listeners as we now use cards + edit mode toggle
 
             btnSubmit.setOnClickListener(v -> {
-                String selectedPlace = spinner.getSelectedItem() != null ? spinner.getSelectedItem().toString() : "Default Office";
+                String selectedPlace = actvPlaces.getText().toString();
+                if (selectedPlace.isEmpty()) selectedPlace = "Default Office";
                 submitShift(entryCal.getTimeInMillis(), leaveCal.getTimeInMillis(), selectedPlace);
                 bottomSheet.dismiss();
                 storageManager.clearActiveShift();
@@ -230,12 +266,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showTimePicker(Calendar calendar, TextView targetView, Runnable onTimeSet) {
-        new TimePickerDialog(this, (view, hourOfDay, minute) -> {
-            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-            calendar.set(Calendar.MINUTE, minute);
+        MaterialTimePicker picker = new MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_24H)
+                .setHour(calendar.get(Calendar.HOUR_OF_DAY))
+                .setMinute(calendar.get(Calendar.MINUTE))
+                .setTitleText("Select Time")
+                .build();
+
+        picker.addOnPositiveButtonClickListener(v -> {
+            calendar.set(Calendar.HOUR_OF_DAY, picker.getHour());
+            calendar.set(Calendar.MINUTE, picker.getMinute());
             targetView.setText(dateFormat.format(calendar.getTime()));
             if (onTimeSet != null) onTimeSet.run();
-        }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
+        });
+
+        picker.show(getSupportFragmentManager(), "MATERIAL_TIME_PICKER");
     }
 
     private void submitShift(long entryTime, long leaveTime, String place) {
