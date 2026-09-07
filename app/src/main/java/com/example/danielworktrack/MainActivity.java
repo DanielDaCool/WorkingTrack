@@ -3,6 +3,8 @@ package com.example.danielworktrack;
 import android.app.TimePickerDialog;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -50,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatus;
     private Button btnAction;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private Runnable timerRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,24 +89,49 @@ public class MainActivity extends AppCompatActivity {
         long clockInTime = storageManager.getClockInTime();
         ImageView ivStatusIcon = findViewById(R.id.ivStatusIcon);
         
-        if (clockInTime == -1) {
-            tvStatus.setText("Clocked Out");
-            btnAction.setText("Clock In");
-            btnAction.setBackgroundResource(R.drawable.button_gradient_primary);
-            btnAction.setBackgroundTintList(null);
-            if (ivStatusIcon != null) {
-                ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_primary)));
-            }
-        } else {
-            String timeString = dateFormat.format(clockInTime);
-            tvStatus.setText("Clocked in at " + timeString);
-            btnAction.setText("Clock Out");
-            btnAction.setBackgroundResource(R.drawable.button_gradient_error);
-            btnAction.setBackgroundTintList(null);
-            if (ivStatusIcon != null) {
-                ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_error)));
-            }
+        // Stop any existing timer
+        if (timerRunnable != null) {
+            timerHandler.removeCallbacks(timerRunnable);
         }
+
+        // Animated state transition
+        btnAction.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction(() -> {
+            if (clockInTime == -1) {
+                tvStatus.setText("Clocked Out");
+                btnAction.setText("Clock In");
+                btnAction.setBackgroundResource(R.drawable.button_gradient_primary);
+                btnAction.setBackgroundTintList(null);
+                if (ivStatusIcon != null) {
+                    ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_primary)));
+                }
+            } else {
+                btnAction.setText("Clock Out");
+                btnAction.setBackgroundResource(R.drawable.button_gradient_error);
+                btnAction.setBackgroundTintList(null);
+                if (ivStatusIcon != null) {
+                    ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_error)));
+                }
+
+                // Start live timer
+                timerRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        long elapsed = System.currentTimeMillis() - clockInTime;
+                        tvStatus.setText("Working: " + formatElapsedTime(elapsed));
+                        timerHandler.postDelayed(this, 1000);
+                    }
+                };
+                timerHandler.post(timerRunnable);
+            }
+            btnAction.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
+        }).start();
+    }
+
+    private String formatElapsedTime(long ms) {
+        long seconds = (ms / 1000) % 60;
+        long minutes = (ms / (1000 * 60)) % 60;
+        long hours = (ms / (1000 * 60 * 60));
+        return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     private void fetchPlacesDynamic() {
@@ -327,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
                 if (state.isFinished()) {
                     if (state == WorkInfo.State.SUCCEEDED) {
                         Toast.makeText(this, "Shift successfully saved to Sheets!", Toast.LENGTH_LONG).show();
+                        showCelebration();
                     } else if (state == WorkInfo.State.FAILED) {
                         Toast.makeText(this, "Network error: Shift queued for retry.", Toast.LENGTH_LONG).show();
                     }
@@ -335,5 +365,32 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Toast.makeText(this, "Processing shift submission...", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showCelebration() {
+        ImageView ivCelebration = findViewById(R.id.ivCelebration);
+        if (ivCelebration == null) return;
+
+        ivCelebration.setVisibility(View.VISIBLE);
+        ivCelebration.setAlpha(0f);
+        ivCelebration.setScaleX(0.5f);
+        ivCelebration.setScaleY(0.5f);
+
+        ivCelebration.animate()
+                .alpha(1f)
+                .scaleX(1.2f)
+                .scaleY(1.2f)
+                .setDuration(500)
+                .withEndAction(() -> {
+                    ivCelebration.animate()
+                            .alpha(0f)
+                            .scaleX(1.5f)
+                            .scaleY(1.5f)
+                            .setDuration(500)
+                            .setStartDelay(1000)
+                            .withEndAction(() -> ivCelebration.setVisibility(View.GONE))
+                            .start();
+                })
+                .start();
     }
 }
