@@ -1,9 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.DanielWorkTrack" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <style name="Base.Theme.TimeTracker" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_onPrimaryContainer</item>
+
+        <!-- App Window Background -->
+        <item name="android:windowBackground">@color/md_theme_background</item>
+        <item name="colorSurface">@color/md_theme_surface</item>
     </style>
 
-    <style name="Theme.DanielWorkTrack" parent="Base.Theme.DanielWorkTrack" />
+    <style name="Theme.TimeTracker" parent="Base.Theme.TimeTracker" />
 </resources>
