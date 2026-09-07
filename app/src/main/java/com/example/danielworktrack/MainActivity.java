@@ -3,8 +3,6 @@ package com.example.danielworktrack;
 import android.app.TimePickerDialog;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -52,8 +50,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatus;
     private Button btnAction;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-    private final Handler timerHandler = new Handler(Looper.getMainLooper());
-    private Runnable timerRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,11 +85,6 @@ public class MainActivity extends AppCompatActivity {
         long clockInTime = storageManager.getClockInTime();
         ImageView ivStatusIcon = findViewById(R.id.ivStatusIcon);
         
-        // Stop any existing timer
-        if (timerRunnable != null) {
-            timerHandler.removeCallbacks(timerRunnable);
-        }
-
         // Animated state transition
         btnAction.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction(() -> {
             if (clockInTime == -1) {
@@ -105,33 +96,16 @@ public class MainActivity extends AppCompatActivity {
                     ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_primary)));
                 }
             } else {
+                tvStatus.setText("Clocked in at " + dateFormat.format(clockInTime));
                 btnAction.setText("Clock Out");
                 btnAction.setBackgroundResource(R.drawable.button_gradient_error);
                 btnAction.setBackgroundTintList(null);
                 if (ivStatusIcon != null) {
                     ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_error)));
                 }
-
-                // Start live timer
-                timerRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        long elapsed = System.currentTimeMillis() - clockInTime;
-                        tvStatus.setText("Working: " + formatElapsedTime(elapsed));
-                        timerHandler.postDelayed(this, 1000);
-                    }
-                };
-                timerHandler.post(timerRunnable);
             }
             btnAction.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
         }).start();
-    }
-
-    private String formatElapsedTime(long ms) {
-        long seconds = (ms / 1000) % 60;
-        long minutes = (ms / (1000 * 60)) % 60;
-        long hours = (ms / (1000 * 60 * 60));
-        return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     private void fetchPlacesDynamic() {
@@ -236,8 +210,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            // Removed direct TV click listeners as we now use cards + edit mode toggle
-
             btnSubmit.setOnClickListener(v -> {
                 String selectedPlace = actvPlaces.getText().toString();
                 if (selectedPlace.isEmpty()) selectedPlace = "Default Office";
@@ -313,8 +285,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void submitShift(long entryTime, long leaveTime, String place) {
-        if (leaveTime <= entryTime) {
-            Toast.makeText(this, "Invalid shift: duration must be positive", Toast.LENGTH_SHORT).show();
+        long now = System.currentTimeMillis();
+        if (leaveTime <= entryTime || leaveTime > now + 60000 || entryTime > now + 60000) {
+            Toast.makeText(this, "Invalid shift: check your times (cannot be in the future)", Toast.LENGTH_LONG).show();
             return;
         }
 
