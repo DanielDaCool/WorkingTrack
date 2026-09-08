@@ -24,6 +24,7 @@ import androidx.work.WorkManager;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
 
@@ -135,6 +136,8 @@ public class MainActivity extends AppCompatActivity {
         View cardLeave = bottomSheet.findViewById(R.id.cardLeave);
         TextView btnToggleEdit = bottomSheet.findViewById(R.id.btnToggleEdit);
         AutoCompleteTextView actvPlaces = bottomSheet.findViewById(R.id.actvPlaces);
+        TextInputEditText etNotes1 = bottomSheet.findViewById(R.id.etNotes1);
+        TextInputEditText etNotes2 = bottomSheet.findViewById(R.id.etNotes2);
         Button btnSubmit = bottomSheet.findViewById(R.id.btnSubmit);
         TextView tvDuration = bottomSheet.findViewById(R.id.tvDurationPreview);
         TextView tvError = bottomSheet.findViewById(R.id.tvTimeError);
@@ -148,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
         final boolean[] isEditMode = {false};
 
-        if (tvEntry != null && tvLeave != null && cardEntry != null && cardLeave != null && btnToggleEdit != null && actvPlaces != null && btnSubmit != null && tvDuration != null && tvError != null && progressShift != null) {
+        if (tvEntry != null && tvLeave != null && cardEntry != null && cardLeave != null && btnToggleEdit != null && actvPlaces != null && etNotes1 != null && etNotes2 != null && btnSubmit != null && tvDuration != null && tvError != null && progressShift != null) {
             tvEntry.setText(dateFormat.format(entryCal.getTime()));
             tvLeave.setText(dateFormat.format(leaveCal.getTime()));
 
@@ -213,7 +216,9 @@ public class MainActivity extends AppCompatActivity {
             btnSubmit.setOnClickListener(v -> {
                 String selectedPlace = actvPlaces.getText().toString();
                 if (selectedPlace.isEmpty()) selectedPlace = "Default Office";
-                submitShift(entryCal.getTimeInMillis(), leaveCal.getTimeInMillis(), selectedPlace);
+                String notes1 = etNotes1.getText() != null ? etNotes1.getText().toString() : "";
+                String notes2 = etNotes2.getText() != null ? etNotes2.getText().toString() : "";
+                submitShift(entryCal.getTimeInMillis(), leaveCal.getTimeInMillis(), selectedPlace, notes1, notes2);
                 bottomSheet.dismiss();
                 storageManager.clearActiveShift();
                 updateUIState();
@@ -284,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
         picker.show(getSupportFragmentManager(), "MATERIAL_TIME_PICKER");
     }
 
-    private void submitShift(long entryTime, long leaveTime, String place) {
+    private void submitShift(long entryTime, long leaveTime, String place, String notes1, String notes2) {
         long now = System.currentTimeMillis();
         if (leaveTime <= entryTime || leaveTime > now + 60000 || entryTime > now + 60000) {
             Toast.makeText(this, "Invalid shift: check your times (cannot be in the future)", Toast.LENGTH_LONG).show();
@@ -301,6 +306,8 @@ public class MainActivity extends AppCompatActivity {
             payload.put("leaveTime", dateFormat.format(leaveTime));
             payload.put("place", place);
             payload.put("duration", formattedDuration);
+            payload.put("notes1", notes1);
+            payload.put("notes2", notes2);
         } catch (JSONException e) {
             e.printStackTrace();
             return;

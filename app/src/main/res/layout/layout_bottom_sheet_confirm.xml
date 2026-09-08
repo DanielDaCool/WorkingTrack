@@ -170,6 +170,7 @@
         android:hint="Work Location"
         android:layout_marginBottom="32dp"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layoutDirection="rtl"
         app:boxCornerRadiusTopStart="16dp"
         app:boxCornerRadiusTopEnd="16dp"
         app:boxCornerRadiusBottomStart="16dp"
@@ -184,7 +185,53 @@
             android:padding="16dp"
             android:textColor="#1A1C1E"
             android:textSize="16sp"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            android:gravity="right|center_vertical"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Additional Information Fields -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="מה היה במפגש"
+        android:layout_marginBottom="12dp"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layoutDirection="rtl"
+        app:boxCornerRadiusTopStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusBottomEnd="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etNotes1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textMultiLine"
+            android:textColor="#1A1C1E"
+            android:textSize="16sp"
+            android:gravity="right|top"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="חשוב לזכור"
+        android:layout_marginBottom="32dp"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layoutDirection="rtl"
+        app:boxCornerRadiusTopStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusBottomEnd="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etNotes2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textMultiLine"
+            android:textColor="#1A1C1E"
+            android:textSize="16sp"
+            android:gravity="right|top"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Duration Preview & Progress Bar -->
