@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatus;
     private Button btnAction;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+    private final SimpleDateFormat sheetDateFormat = new SimpleDateFormat("d.M.yy", Locale.getDefault());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -243,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
             });
 
             // Initialize Meeting Type Dropdown
-            String[] meetingTypes = {"שיעור", "תגבור", "תחרות", "אסיפת הורים", "frc- בבדיקה", "אחר"};
+            String[] meetingTypes = {"שיעור", "תגבור", "תחרות", "אסיפת הורים", "frc", "אחר"};
             ArrayAdapter<String> meetingAdapter = new ArrayAdapter<>(this, R.layout.item_spinner_rtl, meetingTypes);
             actvMeetingType.setAdapter(meetingAdapter);
             // Default to "שיעור"
@@ -350,8 +351,9 @@ public class MainActivity extends AppCompatActivity {
 
         JSONObject payload = new JSONObject();
         try {
-            payload.put("entryTime", dateFormat.format(entryTime));
-            payload.put("leaveTime", dateFormat.format(leaveTime));
+            payload.put("date", sheetDateFormat.format(entryTime));
+            payload.put("entryTime", dateFormat.format(entryTime).split(" ")[1]);
+            payload.put("leaveTime", dateFormat.format(leaveTime).split(" ")[1]);
             payload.put("place", place);
             payload.put("duration", formattedDuration);
             payload.put("notes1", notes1);
