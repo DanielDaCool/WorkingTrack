@@ -13,7 +13,7 @@ import okhttp3.Response;
  */
 public class NetworkManager {
 
-        private static final String WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw4wyH-M7jYJgLO3JXsNb7AezB5kpMIsW_1xhMioS-qqfMUKykNBC9H4hO31nJtiz5c/exec";
+        private static final String WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqZIcXnamoGiKlBsBfHhuCzquALyayEG4n4Sh8gI5PtwPdVOJ7Xw5DXxGh46DOE5fV/exec";
     private final OkHttpClient client = new OkHttpClient();
 
     /**

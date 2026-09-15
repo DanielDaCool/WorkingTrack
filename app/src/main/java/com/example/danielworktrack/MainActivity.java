@@ -272,7 +272,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                     Toast.makeText(this, "חובה להזין מספר תלמידים לפני השליחה", Toast.LENGTH_SHORT).show();
                     return;
-                } else {
+                }
+
+                else {
                     if (tilStudentCount != null) {
                         tilStudentCount.setError(null);
                     }
@@ -352,11 +354,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void submitShift(long entryTime, long leaveTime, String place, String notes1, String notes2, String meetingType, String dediLed, String studentCount) {
+
         long now = System.currentTimeMillis();
         if (leaveTime <= entryTime || leaveTime > now + 60000 || entryTime > now + 60000) {
             Toast.makeText(this, "Invalid shift: check your times (cannot be in the future)", Toast.LENGTH_LONG).show();
             return;
         }
+        entryTime = Math.round(entryTime / 300000.0) * 300000;
+        leaveTime = Math.round(leaveTime / 300000.0) * 300000;
 
         double durationMs = leaveTime - entryTime;
         double durationHours = durationMs / (1000.0 * 60.0 * 60.0);
