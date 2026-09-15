@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="md_theme_primary">#0061A4</color>
-    <color name="md_theme_onPrimary">#FFFFFF</color>
-    <color name="md_theme_primaryContainer">#D1E4FF</color>
-    <color name="md_theme_onPrimaryContainer">#001D36</color>
-    <color name="md_theme_background">#FDFBFF</color>
-    <color name="md_theme_surface">#FDFBFF</color>
-    <color name="md_theme_onSurface">#1A1C1E</color>
+    <!-- High-Contrast Professional Dark Palette -->
+    <color name="md_theme_primary">#D0BCFF</color>
+    <color name="md_theme_onPrimary">#381E72</color>
+    <color name="md_theme_primaryContainer">#2A2438</color> <!-- Darker, richer violet container -->
+    <color name="md_theme_onPrimaryContainer">#EADDFF</color>
 
-    <color name="md_theme_error">#BA1A1A</color>
-    <color name="md_theme_onError">#FFFFFF</color>
-    <color name="md_theme_errorContainer">#FFDAD6</color>
-    <color name="md_theme_onErrorContainer">#410002</color>
+    <color name="md_theme_background">#0F0E13</color> <!-- Sleek deep midnight background -->
+    <color name="md_theme_surface">#16151A</color> <!-- Slightly lighter surface for distinct cards -->
+    <color name="md_theme_onSurface">#FFFFFF</color> <!-- Pure crisp white text for high emphasis -->
+    <color name="md_theme_surfaceVariant">#222129</color> <!-- Beautiful distinct color for input backgrounds -->
+    <color name="md_theme_onSurfaceVariant">#E3E1E9</color>
 
-    <color name="md_theme_secondary">#535F70</color>
-    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_error">#FFB4AB</color>
+    <color name="md_theme_onError">#690005</color>
+    <color name="md_theme_errorContainer">#410002</color>
+    <color name="md_theme_onErrorContainer">#FFDAD6</color>
 
-    <color name="surface_variant">#E2E2E9</color>
-    <color name="text_secondary">#44474E</color>
+    <color name="md_theme_secondary">#CCC2DC</color>
+    <color name="md_theme_onSecondary">#332D41</color>
+
+    <color name="surface_variant">#2E2C36</color> <!-- Crisp outline border color -->
+    <color name="text_secondary">#A5A2B0</color> <!-- Clean secondary text color -->
 </resources>

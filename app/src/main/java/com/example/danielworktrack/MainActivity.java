@@ -4,15 +4,16 @@ import android.app.TimePickerDialog;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
 import androidx.work.Constraints;
 import androidx.work.Data;
@@ -21,8 +22,8 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.chip.Chip;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.timepicker.MaterialTimePicker;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         setContentView(R.layout.activity_main);
 
         storageManager = new StorageManager(this);
@@ -93,6 +95,10 @@ public class MainActivity extends AppCompatActivity {
                 btnAction.setText("Clock In");
                 btnAction.setBackgroundResource(R.drawable.button_gradient_primary);
                 btnAction.setBackgroundTintList(null);
+                btnAction.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onPrimary));
+                if (btnAction instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnAction).setIconTint(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_onPrimary)));
+                }
                 if (ivStatusIcon != null) {
                     ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_primary)));
                 }
@@ -101,6 +107,10 @@ public class MainActivity extends AppCompatActivity {
                 btnAction.setText("Clock Out");
                 btnAction.setBackgroundResource(R.drawable.button_gradient_error);
                 btnAction.setBackgroundTintList(null);
+                btnAction.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onPrimary));
+                if (btnAction instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnAction).setIconTint(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_onPrimary)));
+                }
                 if (ivStatusIcon != null) {
                     ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_error)));
                 }
@@ -130,12 +140,26 @@ public class MainActivity extends AppCompatActivity {
         bottomSheet.setContentView(R.layout.layout_bottom_sheet_confirm);
         bottomSheet.setCancelable(false);
 
+        // Ensure the dialog resizes when the keyboard appears
+        if (bottomSheet.getWindow() != null) {
+            bottomSheet.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        }
+
+        // Force the bottom sheet to start expanded
+        View bottomSheetInternal = bottomSheet.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheetInternal != null) {
+            BottomSheetBehavior.from(bottomSheetInternal).setState(BottomSheetBehavior.STATE_EXPANDED);
+        }
+
         TextView tvEntry = bottomSheet.findViewById(R.id.tvEntryTime);
         TextView tvLeave = bottomSheet.findViewById(R.id.tvLeaveTime);
         View cardEntry = bottomSheet.findViewById(R.id.cardEntry);
         View cardLeave = bottomSheet.findViewById(R.id.cardLeave);
         TextView btnToggleEdit = bottomSheet.findViewById(R.id.btnToggleEdit);
         AutoCompleteTextView actvPlaces = bottomSheet.findViewById(R.id.actvPlaces);
+        AutoCompleteTextView actvMeetingType = bottomSheet.findViewById(R.id.actvMeetingType);
+        AutoCompleteTextView actvDediLed = bottomSheet.findViewById(R.id.actvDediLed);
+        TextInputEditText etStudentCount = bottomSheet.findViewById(R.id.etStudentCount);
         TextInputEditText etNotes1 = bottomSheet.findViewById(R.id.etNotes1);
         TextInputEditText etNotes2 = bottomSheet.findViewById(R.id.etNotes2);
         Button btnSubmit = bottomSheet.findViewById(R.id.btnSubmit);
@@ -151,7 +175,11 @@ public class MainActivity extends AppCompatActivity {
 
         final boolean[] isEditMode = {false};
 
-        if (tvEntry != null && tvLeave != null && cardEntry != null && cardLeave != null && btnToggleEdit != null && actvPlaces != null && etNotes1 != null && etNotes2 != null && btnSubmit != null && tvDuration != null && tvError != null && progressShift != null) {
+        if (tvEntry != null && tvLeave != null && cardEntry != null && cardLeave != null && 
+            btnToggleEdit != null && actvPlaces != null && actvMeetingType != null && 
+            actvDediLed != null && etStudentCount != null && etNotes1 != null && 
+            etNotes2 != null && btnSubmit != null && tvDuration != null && 
+            tvError != null && progressShift != null) {
             tvEntry.setText(dateFormat.format(entryCal.getTime()));
             tvLeave.setText(dateFormat.format(leaveCal.getTime()));
 
@@ -182,7 +210,8 @@ public class MainActivity extends AppCompatActivity {
 
             // Load whatever is currently cached first
             List<String> places = storageManager.getPlaces();
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.item_spinner, places);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.item_spinner_rtl, places);
+            adapter.setDropDownViewResource(R.layout.item_spinner_rtl);
             actvPlaces.setAdapter(adapter);
             if (!places.isEmpty()) {
                 actvPlaces.setText(places.get(0), false);
@@ -213,12 +242,31 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+            // Initialize Meeting Type Dropdown
+            String[] meetingTypes = {"שיעור", "תגבור", "תחרות", "אסיפת הורים", "frc- בבדיקה", "אחר"};
+            ArrayAdapter<String> meetingAdapter = new ArrayAdapter<>(this, R.layout.item_spinner_rtl, meetingTypes);
+            actvMeetingType.setAdapter(meetingAdapter);
+            // Default to "שיעור"
+            actvMeetingType.setText("שיעור", false);
+
+            // Initialize Dedi Led Dropdown
+            String[] dediLedOptions = {"הוביל את השיעור", "נכח בשיעור", "לא היה", "אירים באה לתגבר", "אירים החליפה אותי", "מני החליף אותי"};
+            ArrayAdapter<String> dediLedAdapter = new ArrayAdapter<>(this, R.layout.item_spinner_rtl, dediLedOptions);
+            actvDediLed.setAdapter(dediLedAdapter);
+            // Default to "לא היה"
+            actvDediLed.setText("לא היה", false);
+
             btnSubmit.setOnClickListener(v -> {
                 String selectedPlace = actvPlaces.getText().toString();
                 if (selectedPlace.isEmpty()) selectedPlace = "Default Office";
+                
+                String meetingType = actvMeetingType.getText().toString();
+                String dediLed = actvDediLed.getText().toString();
+                String studentCount = etStudentCount.getText() != null ? etStudentCount.getText().toString() : "";
+                
                 String notes1 = etNotes1.getText() != null ? etNotes1.getText().toString() : "";
                 String notes2 = etNotes2.getText() != null ? etNotes2.getText().toString() : "";
-                submitShift(entryCal.getTimeInMillis(), leaveCal.getTimeInMillis(), selectedPlace, notes1, notes2);
+                submitShift(entryCal.getTimeInMillis(), leaveCal.getTimeInMillis(), selectedPlace, notes1, notes2, meetingType, dediLed, studentCount);
                 bottomSheet.dismiss();
                 storageManager.clearActiveShift();
                 updateUIState();
@@ -289,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
         picker.show(getSupportFragmentManager(), "MATERIAL_TIME_PICKER");
     }
 
-    private void submitShift(long entryTime, long leaveTime, String place, String notes1, String notes2) {
+    private void submitShift(long entryTime, long leaveTime, String place, String notes1, String notes2, String meetingType, String dediLed, String studentCount) {
         long now = System.currentTimeMillis();
         if (leaveTime <= entryTime || leaveTime > now + 60000 || entryTime > now + 60000) {
             Toast.makeText(this, "Invalid shift: check your times (cannot be in the future)", Toast.LENGTH_LONG).show();
@@ -308,6 +356,9 @@ public class MainActivity extends AppCompatActivity {
             payload.put("duration", formattedDuration);
             payload.put("notes1", notes1);
             payload.put("notes2", notes2);
+            payload.put("meetingType", meetingType);
+            payload.put("dediLed", dediLed);
+            payload.put("studentCount", studentCount);
         } catch (JSONException e) {
             e.printStackTrace();
             return;
