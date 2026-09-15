@@ -160,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
         AutoCompleteTextView actvPlaces = bottomSheet.findViewById(R.id.actvPlaces);
         AutoCompleteTextView actvMeetingType = bottomSheet.findViewById(R.id.actvMeetingType);
         AutoCompleteTextView actvDediLed = bottomSheet.findViewById(R.id.actvDediLed);
+        com.google.android.material.textfield.TextInputLayout tilStudentCount = bottomSheet.findViewById(R.id.tilStudentCount);
         TextInputEditText etStudentCount = bottomSheet.findViewById(R.id.etStudentCount);
         TextInputEditText etNotes1 = bottomSheet.findViewById(R.id.etNotes1);
         TextInputEditText etNotes2 = bottomSheet.findViewById(R.id.etNotes2);
@@ -264,6 +265,18 @@ public class MainActivity extends AppCompatActivity {
                 String meetingType = actvMeetingType.getText().toString();
                 String dediLed = actvDediLed.getText().toString();
                 String studentCount = etStudentCount.getText() != null ? etStudentCount.getText().toString() : "";
+
+                if (studentCount.trim().isEmpty()) {
+                    if (tilStudentCount != null) {
+                        tilStudentCount.setError("חובה להזין מספר תלמידים");
+                    }
+                    Toast.makeText(this, "חובה להזין מספר תלמידים לפני השליחה", Toast.LENGTH_SHORT).show();
+                    return;
+                } else {
+                    if (tilStudentCount != null) {
+                        tilStudentCount.setError(null);
+                    }
+                }
                 
                 String notes1 = etNotes1.getText() != null ? etNotes1.getText().toString() : "";
                 String notes2 = etNotes2.getText() != null ? etNotes2.getText().toString() : "";
