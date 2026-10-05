@@ -58,9 +58,14 @@ public class StorageManager {
             }
         }
 
+        // Must match the "Places" sheet exactly, or the report sync won't recognize the place.
         if (places.isEmpty()) {
-            places.add("Main Office");
-            places.add("Remote / Home");
+            places.add("תל אביב (fll)");
+            places.add("ברנר");
+            places.add("תל אביב (frc)");
+            places.add("נס ציונה (בן צבי)");
+            places.add("נס ציונה (שקד)");
+            places.add("נס ציונה (ארגמן)");
         }
 
         return places;
