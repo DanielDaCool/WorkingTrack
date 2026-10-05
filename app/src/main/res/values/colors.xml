@@ -1,25 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- High-Contrast Professional Dark Palette -->
-    <color name="md_theme_primary">#D0BCFF</color>
-    <color name="md_theme_onPrimary">#381E72</color>
-    <color name="md_theme_primaryContainer">#2A2438</color> <!-- Darker, richer violet container -->
-    <color name="md_theme_onPrimaryContainer">#EADDFF</color>
+    <!-- WorkTrack dark palette (flat) -->
+    <color name="md_theme_primary">#7DD3C0</color>
+    <color name="md_theme_onPrimary">#0B2B25</color>
+    <color name="md_theme_primaryContainer">#1B1B20</color>
+    <color name="md_theme_onPrimaryContainer">#F4F4F5</color>
 
-    <color name="md_theme_background">#0F0E13</color> <!-- Sleek deep midnight background -->
-    <color name="md_theme_surface">#16151A</color> <!-- Slightly lighter surface for distinct cards -->
-    <color name="md_theme_onSurface">#FFFFFF</color> <!-- Pure crisp white text for high emphasis -->
-    <color name="md_theme_surfaceVariant">#222129</color> <!-- Beautiful distinct color for input backgrounds -->
-    <color name="md_theme_onSurfaceVariant">#E3E1E9</color>
+    <color name="md_theme_background">#111114</color>
+    <color name="md_theme_surface">#1B1B20</color>
+    <color name="md_theme_onSurface">#F4F4F5</color>
+    <color name="md_theme_surfaceVariant">#24242B</color>
+    <color name="md_theme_onSurfaceVariant">#A1A1AA</color>
 
-    <color name="md_theme_error">#FFB4AB</color>
-    <color name="md_theme_onError">#690005</color>
-    <color name="md_theme_errorContainer">#410002</color>
-    <color name="md_theme_onErrorContainer">#FFDAD6</color>
+    <color name="md_theme_error">#F87171</color>
+    <color name="md_theme_onError">#2A0A0A</color>
+    <color name="md_theme_errorContainer">#3A1618</color>
+    <color name="md_theme_onErrorContainer">#F87171</color>
 
-    <color name="md_theme_secondary">#CCC2DC</color>
-    <color name="md_theme_onSecondary">#332D41</color>
+    <color name="md_theme_secondary">#A1A1AA</color>
+    <color name="md_theme_onSecondary">#111114</color>
 
-    <color name="surface_variant">#2E2C36</color> <!-- Crisp outline border color -->
-    <color name="text_secondary">#A5A2B0</color> <!-- Clean secondary text color -->
+    <color name="surface_variant">#2F2F38</color> <!-- border -->
+    <color name="text_secondary">#A1A1AA</color>
+    <color name="text_body_muted">#C4C4CC</color>
+    <color name="handle">#3F3F48</color>
 </resources>

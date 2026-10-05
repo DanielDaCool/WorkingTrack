@@ -11,88 +11,100 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="28dp"
         android:layoutDirection="rtl">
 
-        <!-- Drag Handle -->
+        <!-- Drag handle + caption -->
         <View
             android:layout_width="40dp"
             android:layout_height="4dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp"
             android:background="@drawable/drag_handle_bg"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Review &amp; Submit Shift"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="@color/md_theme_primary"
-            android:layout_marginBottom="24dp"/>
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="6dp"
+            android:text="גרור למטה כדי לבטל את השיעור"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"/>
 
-        <!-- Times Section (Card Based) -->
+        <!-- Title row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginTop="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="סיום שיעור"
+                android:textAlignment="viewStart"
+                android:textColor="@color/md_theme_onSurface"
+                android:textSize="24sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/tvDurationPreview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0.00 ש׳"
+                android:textColor="@color/md_theme_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- Time cards -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
             android:baselineAligned="false"
-            android:layout_marginBottom="12dp">
+            android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardEntry"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="@color/md_theme_surfaceVariant"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
                 app:strokeColor="@color/surface_variant"
-                android:clickable="false"
-                android:focusable="false">
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical">
+                    android:orientation="vertical"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="12dp">
 
-                    <ImageView
-                        android:id="@+id/ivEditEntry"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_clock"
-                        app:tint="@color/md_theme_primary"
-                        android:alpha="0.8"
-                        android:contentDescription="Entry Icon"/>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="12dp">
+                        android:text="כניסה"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"/>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ENTRY"
-                            android:textSize="10sp"
-                            android:textColor="@color/text_secondary"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.1"
-                            android:layout_marginBottom="2dp"/>
-
-                        <TextView
-                            android:id="@+id/tvEntryTime"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/md_theme_onSurface"
-                            android:textSize="14sp"
-                            android:textStyle="bold"/>
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvEntryTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="20sp"
+                        android:textStyle="bold"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -100,278 +112,205 @@
                 android:id="@+id/cardLeave"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="@color/md_theme_surfaceVariant"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
                 app:strokeColor="@color/surface_variant"
-                android:clickable="false"
-                android:focusable="false">
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical">
+                    android:orientation="vertical"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="12dp">
 
-                    <ImageView
-                        android:id="@+id/ivEditLeave"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_clock"
-                        app:tint="@color/md_theme_error"
-                        android:alpha="0.8"
-                        android:contentDescription="Leave Icon"/>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="12dp">
+                        android:text="יציאה"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"/>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="LEAVE"
-                            android:textSize="10sp"
-                            android:textColor="@color/text_secondary"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.1"
-                            android:layout_marginBottom="2dp"/>
-
-                        <TextView
-                            android:id="@+id/tvLeaveTime"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/md_theme_onSurface"
-                            android:textSize="14sp"
-                            android:textStyle="bold"/>
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvLeaveTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="20sp"
+                        android:textStyle="bold"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
         <TextView
-            android:id="@+id/btnToggleEdit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Adjust Times"
-            android:textSize="14sp"
-            android:textColor="@color/md_theme_primary"
-            android:textStyle="bold"
-            android:layout_gravity="center_horizontal"
-            android:padding="8dp"
-            android:layout_marginBottom="16dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground"/>
+            android:layout_marginTop="8dp"
+            android:text="הקש על שעה כדי לשנות אותה"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"/>
 
-        <!-- Location Section -->
+        <TextView
+            android:id="@+id/tvTimeError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/md_theme_error"
+            android:textSize="14sp"
+            android:visibility="gone"/>
+
+        <!-- Place -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/WT.Dropdown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="מקום העבודה"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layoutDirection="rtl"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxStrokeColor="@color/md_theme_primary">
+            android:layout_marginTop="14dp"
+            android:hint="מקום"
+            android:layoutDirection="rtl">
 
             <AutoCompleteTextView
                 android:id="@+id/actvPlaces"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="none"
-                android:padding="16dp"
-                android:textColor="@color/md_theme_onSurface"
-                android:textSize="16sp"
-                android:textStyle="bold"
+                android:gravity="start|center_vertical"
                 android:textAlignment="viewStart"
-                android:gravity="start|center_vertical"/>
+                android:textColor="@color/md_theme_onSurface"
+                android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- סוג מפגש Dropdown -->
-        <com.google.android.material.textfield.TextInputLayout
+        <!-- Meeting type + students -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="סוג מפגש"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layoutDirection="rtl"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxStrokeColor="@color/md_theme_primary">
+            android:layout_marginTop="14dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
 
-            <AutoCompleteTextView
-                android:id="@+id/actvMeetingType"
-                android:layout_width="match_parent"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/WT.Dropdown"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="none"
-                android:padding="16dp"
-                android:textColor="@color/md_theme_onSurface"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textAlignment="viewStart"
-                android:gravity="start|center_vertical"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginEnd="5dp"
+                android:layout_weight="1"
+                android:hint="סוג מפגש"
+                android:layoutDirection="rtl">
 
-        <!-- דדי הוביל Dropdown -->
+                <AutoCompleteTextView
+                    android:id="@+id/actvMeetingType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:gravity="start|center_vertical"
+                    android:textAlignment="viewStart"
+                    android:textColor="@color/md_theme_onSurface"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilStudentCount"
+                style="@style/WT.Input"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_weight="1"
+                android:hint="ילדים שהגיעו"
+                android:layoutDirection="rtl">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etStudentCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start|center_vertical"
+                    android:inputType="number"
+                    android:textAlignment="viewStart"
+                    android:textColor="@color/md_theme_onSurface"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <!-- Dedi led -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/WT.Dropdown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="דדי הוביל"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layoutDirection="rtl"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxStrokeColor="@color/md_theme_primary">
+            android:layout_marginTop="14dp"
+            android:hint="דדי הוביל?"
+            android:layoutDirection="rtl">
 
             <AutoCompleteTextView
                 android:id="@+id/actvDediLed"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="none"
-                android:padding="16dp"
-                android:textColor="@color/md_theme_onSurface"
-                android:textSize="16sp"
-                android:textStyle="bold"
+                android:gravity="start|center_vertical"
                 android:textAlignment="viewStart"
-                android:gravity="start|center_vertical"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- מספר תלמידים שהגיעו Input -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilStudentCount"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="מספר תלמידים שהגיעו"
-            android:layout_marginBottom="32dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layoutDirection="rtl"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:errorEnabled="true">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etStudentCount"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
                 android:textColor="@color/md_theme_onSurface"
-                android:textSize="16sp"
-                android:gravity="start|center_vertical"/>
+                android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Additional Information Fields -->
+        <!-- Notes -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/WT.Input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
             android:hint="מה היה במפגש"
-            android:layout_marginBottom="12dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layoutDirection="rtl"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp">
+            android:layoutDirection="rtl">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNotes1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="start|top"
                 android:inputType="textMultiLine"
+                android:minLines="2"
+                android:textAlignment="viewStart"
                 android:textColor="@color/md_theme_onSurface"
-                android:textSize="16sp"
-                android:gravity="start|top"/>
+                android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/WT.Input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
             android:hint="חשוב לזכור"
-            android:layout_marginBottom="32dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layoutDirection="rtl"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp">
+            android:layoutDirection="rtl">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNotes2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="start|top"
                 android:inputType="textMultiLine"
+                android:minLines="2"
+                android:textAlignment="viewStart"
                 android:textColor="@color/md_theme_onSurface"
-                android:textSize="16sp"
-                android:gravity="start|top"/>
+                android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Duration Preview & Progress Bar -->
-        <LinearLayout
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginBottom="32dp">
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
-            <TextView
-                android:id="@+id/tvDurationPreview"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0.00 hours"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="@color/md_theme_primary"/>
-
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/progressShift"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginHorizontal="24dp"
-                app:trackThickness="8dp"
-                app:trackCornerRadius="4dp"
-                app:indicatorColor="@color/md_theme_primary"
-                app:trackColor="@color/surface_variant"
-                android:progress="50"
-                android:max="100"/>
-
-            <TextView
-                android:id="@+id/tvTimeError"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Leave time must be after entry time"
-                android:textSize="14sp"
-                android:textColor="@color/md_theme_error"
-                android:visibility="gone"
-                android:layout_marginTop="8dp"/>
-        </LinearLayout>
-
-        <!-- Submit Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSubmit"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:text="Confirm Shift"
+            android:layout_height="60dp"
+            android:layout_marginTop="20dp"
+            android:text="שלח לגיליון"
+            android:textColor="@color/md_theme_onPrimary"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/md_theme_onPrimary"
-            app:cornerRadius="20dp"
-            android:background="@drawable/button_gradient_primary"
-            app:backgroundTint="@null"/>
+            app:backgroundTint="@color/md_theme_primary"
+            app:cornerRadius="18dp"/>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

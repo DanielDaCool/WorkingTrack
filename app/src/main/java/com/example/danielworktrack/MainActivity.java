@@ -2,7 +2,12 @@ package com.example.danielworktrack;
 
 import android.app.TimePickerDialog;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
@@ -12,9 +17,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.NetworkType;
@@ -24,7 +33,7 @@ import androidx.work.WorkManager;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.progressindicator.LinearProgressIndicator;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
@@ -48,9 +57,22 @@ import okhttp3.Response;
 public class MainActivity extends AppCompatActivity {
 
     private StorageManager storageManager;
+    private boolean discardConfirmShowing = false;
     private NetworkManager networkManager;
     private TextView tvStatus;
     private Button btnAction;
+    private TextView tvTimer;
+    private TextView tvEnteredAt;
+    private View viewStatusDot;
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private final Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            refreshTimer();
+            timerHandler.postDelayed(this, 30000);
+        }
+    };
+    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.US);
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
     private final SimpleDateFormat sheetDateFormat = new SimpleDateFormat("d.M.yy", Locale.getDefault());
 
@@ -65,11 +87,24 @@ public class MainActivity extends AppCompatActivity {
 
         tvStatus = findViewById(R.id.tvStatus);
         btnAction = findViewById(R.id.btnAction);
+        tvTimer = findViewById(R.id.tvTimer);
+        tvEnteredAt = findViewById(R.id.tvEnteredAt);
+        viewStatusDot = findViewById(R.id.viewStatusDot);
 
+        // Edge-to-edge: keep content clear of the system bars.
+        View root = findViewById(R.id.rootMain);
+        final int padL = root.getPaddingLeft(), padT = root.getPaddingTop(),
+                padR = root.getPaddingRight(), padB = root.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(padL + bars.left, padT + bars.top, padR + bars.right, padB + bars.bottom);
+            return insets;
+        });
+
+        TextView tvDate = findViewById(R.id.tvDate);
+        tvDate.setText(new SimpleDateFormat("EEEE, d בMMMM", new Locale("iw")).format(new java.util.Date()));
         TextView tvGreeting = findViewById(R.id.tvGreeting);
-        if (tvGreeting != null) {
-            tvGreeting.setText(getGreeting());
-        }
+        tvGreeting.setText(getGreeting() + ", דניאל");
 
         updateUIState();
         fetchPlacesDynamic();
@@ -78,44 +113,80 @@ public class MainActivity extends AppCompatActivity {
             if (storageManager.getClockInTime() == -1) {
                 storageManager.saveClockInTime(System.currentTimeMillis());
                 updateUIState();
-                Toast.makeText(this, "Clocked In Successfully", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "נכנסת לשיעור", Toast.LENGTH_SHORT).show();
             } else {
                 showCheckoutDialog();
             }
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startTimer();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        timerHandler.removeCallbacks(timerRunnable);
+    }
+
+    @Override
+    protected void onDestroy() {
+        timerHandler.removeCallbacks(timerRunnable);
+        super.onDestroy();
+    }
+
+    private void startTimer() {
+        timerHandler.removeCallbacks(timerRunnable);
+        refreshTimer();
+        if (storageManager.getClockInTime() != -1) {
+            timerHandler.postDelayed(timerRunnable, 30000);
+        }
+    }
+
+    private void refreshTimer() {
+        long clockInTime = storageManager.getClockInTime();
+        if (clockInTime == -1) {
+            tvTimer.setText("--:--");
+            return;
+        }
+        long minutesTotal = Math.max(0, (System.currentTimeMillis() - clockInTime) / 60000);
+        tvTimer.setText(String.format(Locale.US, "%02d:%02d", minutesTotal / 60, minutesTotal % 60));
+    }
+
     private void updateUIState() {
         long clockInTime = storageManager.getClockInTime();
-        ImageView ivStatusIcon = findViewById(R.id.ivStatusIcon);
-        
+        int teal = ContextCompat.getColor(this, R.color.md_theme_primary);
+        int onTeal = ContextCompat.getColor(this, R.color.md_theme_onPrimary);
+        int danger = ContextCompat.getColor(this, R.color.md_theme_error);
+        int onDanger = ContextCompat.getColor(this, R.color.md_theme_onError);
+        int secondary = ContextCompat.getColor(this, R.color.text_secondary);
+
+        if (clockInTime == -1) {
+            tvStatus.setText("לא בשיעור");
+            tvStatus.setTextColor(secondary);
+            viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(secondary));
+            tvEnteredAt.setVisibility(View.INVISIBLE);
+        } else {
+            tvStatus.setText("בשיעור");
+            tvStatus.setTextColor(teal);
+            viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(teal));
+            tvEnteredAt.setText("נכנסת ב-" + timeFormat.format(clockInTime));
+            tvEnteredAt.setVisibility(View.VISIBLE);
+        }
+        startTimer();
+
         // Animated state transition
-        btnAction.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction(() -> {
-            if (clockInTime == -1) {
-                tvStatus.setText("Clocked Out");
-                btnAction.setText("Clock In");
-                btnAction.setBackgroundResource(R.drawable.button_gradient_primary);
-                btnAction.setBackgroundTintList(null);
-                btnAction.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onPrimary));
-                if (btnAction instanceof com.google.android.material.button.MaterialButton) {
-                    ((com.google.android.material.button.MaterialButton) btnAction).setIconTint(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_onPrimary)));
-                }
-                if (ivStatusIcon != null) {
-                    ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_primary)));
-                }
-            } else {
-                tvStatus.setText("Clocked in at " + dateFormat.format(clockInTime));
-                btnAction.setText("Clock Out");
-                btnAction.setBackgroundResource(R.drawable.button_gradient_error);
-                btnAction.setBackgroundTintList(null);
-                btnAction.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onPrimary));
-                if (btnAction instanceof com.google.android.material.button.MaterialButton) {
-                    ((com.google.android.material.button.MaterialButton) btnAction).setIconTint(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_onPrimary)));
-                }
-                if (ivStatusIcon != null) {
-                    ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_error)));
-                }
-            }
+        btnAction.animate().scaleX(0.95f).scaleY(0.95f).setDuration(100).withEndAction(() -> {
+            com.google.android.material.button.MaterialButton button =
+                    (com.google.android.material.button.MaterialButton) btnAction;
+            boolean out = clockInTime == -1;
+            button.setText(out ? "כניסה לשיעור" : "יציאה מהשיעור");
+            button.setBackgroundTintList(ColorStateList.valueOf(out ? teal : danger));
+            button.setTextColor(out ? onTeal : onDanger);
+            button.setIconTint(ColorStateList.valueOf(out ? onTeal : onDanger));
             btnAction.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
         }).start();
     }
@@ -137,9 +208,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCheckoutDialog() {
-        BottomSheetDialog bottomSheet = new BottomSheetDialog(this);
+        // Swiping the sheet down (or Back) cancels the dialog; route that through a
+        // confirmation instead of closing, so the shift is only discarded on "yes".
+        BottomSheetDialog bottomSheet = new BottomSheetDialog(this) {
+            @Override
+            public void cancel() {
+                // A fast double Back can call cancel() twice; show only one popup.
+                if (discardConfirmShowing) return;
+                discardConfirmShowing = true;
+                confirmDiscardShift(this);
+            }
+        };
         bottomSheet.setContentView(R.layout.layout_bottom_sheet_confirm);
-        bottomSheet.setCancelable(false);
+        bottomSheet.setCancelable(true);
+        bottomSheet.setCanceledOnTouchOutside(false);
+        bottomSheet.getBehavior().setSkipCollapsed(true);
 
         // Ensure the dialog resizes when the keyboard appears
         if (bottomSheet.getWindow() != null) {
@@ -156,7 +239,6 @@ public class MainActivity extends AppCompatActivity {
         TextView tvLeave = bottomSheet.findViewById(R.id.tvLeaveTime);
         View cardEntry = bottomSheet.findViewById(R.id.cardEntry);
         View cardLeave = bottomSheet.findViewById(R.id.cardLeave);
-        TextView btnToggleEdit = bottomSheet.findViewById(R.id.btnToggleEdit);
         AutoCompleteTextView actvPlaces = bottomSheet.findViewById(R.id.actvPlaces);
         AutoCompleteTextView actvMeetingType = bottomSheet.findViewById(R.id.actvMeetingType);
         AutoCompleteTextView actvDediLed = bottomSheet.findViewById(R.id.actvDediLed);
@@ -167,7 +249,6 @@ public class MainActivity extends AppCompatActivity {
         Button btnSubmit = bottomSheet.findViewById(R.id.btnSubmit);
         TextView tvDuration = bottomSheet.findViewById(R.id.tvDurationPreview);
         TextView tvError = bottomSheet.findViewById(R.id.tvTimeError);
-        LinearProgressIndicator progressShift = bottomSheet.findViewById(R.id.progressShift);
 
         Calendar entryCal = Calendar.getInstance();
         entryCal.setTimeInMillis(storageManager.getClockInTime());
@@ -175,40 +256,24 @@ public class MainActivity extends AppCompatActivity {
         Calendar leaveCal = Calendar.getInstance();
         leaveCal.setTimeInMillis(System.currentTimeMillis());
 
-        final boolean[] isEditMode = {false};
-
         if (tvEntry != null && tvLeave != null && cardEntry != null && cardLeave != null && 
-            btnToggleEdit != null && actvPlaces != null && actvMeetingType != null && 
+            actvPlaces != null && actvMeetingType != null && 
             actvDediLed != null && etStudentCount != null && etNotes1 != null && 
             etNotes2 != null && btnSubmit != null && tvDuration != null && 
-            tvError != null && progressShift != null) {
-            tvEntry.setText(dateFormat.format(entryCal.getTime()));
-            tvLeave.setText(dateFormat.format(leaveCal.getTime()));
+            tvError != null) {
+            tvEntry.setText(timeFormat.format(entryCal.getTime()));
+            tvLeave.setText(timeFormat.format(leaveCal.getTime()));
 
             // Initial validation check
-            updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit);
+            updateValidationState(entryCal, leaveCal, tvDuration, tvError, btnSubmit);
 
-            btnToggleEdit.setOnClickListener(v -> {
-                isEditMode[0] = !isEditMode[0];
-                btnToggleEdit.setText(isEditMode[0] ? "Disable Manual Edit" : "Adjust Times");
-                cardEntry.setAlpha(isEditMode[0] ? 1.0f : 0.8f);
-                cardLeave.setAlpha(isEditMode[0] ? 1.0f : 0.8f);
-                Toast.makeText(this, isEditMode[0] ? "Manual editing enabled" : "Manual editing disabled", Toast.LENGTH_SHORT).show();
-            });
+            cardEntry.setOnClickListener(v ->
+                    showTimePicker(entryCal, tvEntry, () ->
+                        updateValidationState(entryCal, leaveCal, tvDuration, tvError, btnSubmit)));
 
-            cardEntry.setOnClickListener(v -> {
-                if (isEditMode[0]) {
-                    showTimePicker(entryCal, tvEntry, () -> 
-                        updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit));
-                }
-            });
-
-            cardLeave.setOnClickListener(v -> {
-                if (isEditMode[0]) {
-                    showTimePicker(leaveCal, tvLeave, () -> 
-                        updateValidationState(entryCal, leaveCal, tvDuration, tvError, progressShift, btnSubmit));
-                }
-            });
+            cardLeave.setOnClickListener(v ->
+                    showTimePicker(leaveCal, tvLeave, () ->
+                        updateValidationState(entryCal, leaveCal, tvDuration, tvError, btnSubmit)));
 
             // Load whatever is currently cached first
             List<String> places = storageManager.getPlaces();
@@ -268,9 +333,9 @@ public class MainActivity extends AppCompatActivity {
 
                 if (studentCount.trim().isEmpty()) {
                     if (tilStudentCount != null) {
-                        tilStudentCount.setError("חובה להזין מספר תלמידים");
+                        tilStudentCount.setError("חובה להזין מספר ילדים");
                     }
-                    Toast.makeText(this, "חובה להזין מספר תלמידים לפני השליחה", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "חובה להזין מספר ילדים לפני השליחה", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -292,36 +357,49 @@ public class MainActivity extends AppCompatActivity {
         bottomSheet.show();
     }
 
-    private void updateValidationState(Calendar entry, Calendar leave, TextView tvDuration, TextView tvError, LinearProgressIndicator progress, Button btnSubmit) {
+    private void confirmDiscardShift(BottomSheetDialog bottomSheet) {
+        View content = getLayoutInflater().inflate(R.layout.dialog_cancel_confirm, null);
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(content)
+                .setCancelable(false)
+                .create();
+        if (dialog.getWindow() != null) {
+            int inset = Math.round(24 * getResources().getDisplayMetrics().density);
+            dialog.getWindow().setBackgroundDrawable(new InsetDrawable(new ColorDrawable(Color.TRANSPARENT), inset));
+        }
+        content.findViewById(R.id.btnDiscardYes).setOnClickListener(v -> {
+            discardConfirmShowing = false;
+            storageManager.clearActiveShift();
+            dialog.dismiss();
+            bottomSheet.dismiss();
+            updateUIState();
+            Toast.makeText(this, "השיעור בוטל", Toast.LENGTH_SHORT).show();
+        });
+        content.findViewById(R.id.btnDiscardNo).setOnClickListener(v -> {
+            discardConfirmShowing = false;
+            dialog.dismiss();
+            bottomSheet.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        });
+        dialog.show();
+    }
+
+    private void updateValidationState(Calendar entry, Calendar leave, TextView tvDuration, TextView tvError, Button btnSubmit) {
         long durationMs = leave.getTimeInMillis() - entry.getTimeInMillis();
         long now = System.currentTimeMillis();
 
         boolean isFuture = entry.getTimeInMillis() > now || leave.getTimeInMillis() > now;
         boolean isNegative = durationMs <= 0;
 
-        if (isNegative) {
-            tvDuration.setText("0.00 hours");
-            tvError.setText("Leave time must be after entry time");
-            tvError.setVisibility(android.view.View.VISIBLE);
-            progress.setProgress(0);
-            btnSubmit.setEnabled(false);
-            btnSubmit.setAlpha(0.5f);
-        } else if (isFuture) {
-            tvDuration.setText("0.00 hours");
-            tvError.setText("Shift times cannot be in the future");
-            tvError.setVisibility(android.view.View.VISIBLE);
-            progress.setProgress(0);
+        if (isNegative || isFuture) {
+            tvDuration.setText("0.00 ש׳");
+            tvError.setText(isNegative ? "שעת היציאה חייבת להיות אחרי שעת הכניסה" : "אי אפשר לבחור שעה עתידית");
+            tvError.setVisibility(View.VISIBLE);
             btnSubmit.setEnabled(false);
             btnSubmit.setAlpha(0.5f);
         } else {
             double durationHours = durationMs / (1000.0 * 60.0 * 60.0);
-            tvDuration.setText(String.format(Locale.US, "%.2f hours", durationHours));
-            tvError.setVisibility(android.view.View.GONE);
-            
-            // Progress based on 8 hour workday
-            int progressVal = (int) ((durationHours / 8.0) * 100);
-            progress.setProgress(Math.min(progressVal, 100));
-            
+            tvDuration.setText(String.format(Locale.US, "%.2f ש׳", durationHours));
+            tvError.setVisibility(View.GONE);
             btnSubmit.setEnabled(true);
             btnSubmit.setAlpha(1.0f);
         }
@@ -329,10 +407,10 @@ public class MainActivity extends AppCompatActivity {
 
     private String getGreeting() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        if (hour >= 5 && hour < 12) return "Good Morning,";
-        if (hour >= 12 && hour < 17) return "Good Afternoon,";
-        if (hour >= 17 && hour < 21) return "Good Evening,";
-        return "Good Night,";
+        if (hour >= 5 && hour < 12) return "בוקר טוב";
+        if (hour >= 12 && hour < 17) return "צהריים טובים";
+        if (hour >= 17 && hour < 21) return "ערב טוב";
+        return "לילה טוב";
     }
 
     private void showTimePicker(Calendar calendar, TextView targetView, Runnable onTimeSet) {
@@ -340,13 +418,15 @@ public class MainActivity extends AppCompatActivity {
                 .setTimeFormat(TimeFormat.CLOCK_24H)
                 .setHour(calendar.get(Calendar.HOUR_OF_DAY))
                 .setMinute(calendar.get(Calendar.MINUTE))
-                .setTitleText("Select Time")
+                .setTitleText("בחר שעה")
+                .setPositiveButtonText("אישור")
+                .setNegativeButtonText("ביטול")
                 .build();
 
         picker.addOnPositiveButtonClickListener(v -> {
             calendar.set(Calendar.HOUR_OF_DAY, picker.getHour());
             calendar.set(Calendar.MINUTE, picker.getMinute());
-            targetView.setText(dateFormat.format(calendar.getTime()));
+            targetView.setText(timeFormat.format(calendar.getTime()));
             if (onTimeSet != null) onTimeSet.run();
         });
 
@@ -357,7 +437,7 @@ public class MainActivity extends AppCompatActivity {
 
         long now = System.currentTimeMillis();
         if (leaveTime <= entryTime || leaveTime > now + 60000 || entryTime > now + 60000) {
-            Toast.makeText(this, "Invalid shift: check your times (cannot be in the future)", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "השיעור לא תקין: בדוק את השעות (אי אפשר לבחור שעה עתידית)", Toast.LENGTH_LONG).show();
             return;
         }
         entryTime = Math.round(entryTime / 300000.0) * 300000;
@@ -406,16 +486,16 @@ public class MainActivity extends AppCompatActivity {
                 WorkInfo.State state = workInfo.getState();
                 if (state.isFinished()) {
                     if (state == WorkInfo.State.SUCCEEDED) {
-                        Toast.makeText(this, "Shift successfully saved to Sheets!", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "השיעור נשמר בגיליון", Toast.LENGTH_LONG).show();
                         showCelebration();
                     } else if (state == WorkInfo.State.FAILED) {
-                        Toast.makeText(this, "Network error: Shift queued for retry.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "שגיאת רשת: השיעור ממתין לניסיון חוזר", Toast.LENGTH_LONG).show();
                     }
                 }
             }
         });
 
-        Toast.makeText(this, "Processing shift submission...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "שולח את השיעור...", Toast.LENGTH_SHORT).show();
     }
 
     private void showCelebration() {

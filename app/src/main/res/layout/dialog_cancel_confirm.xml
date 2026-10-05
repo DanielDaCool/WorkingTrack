@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layoutDirection="rtl"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background">
+
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_trash"
+        android:background="@drawable/dialog_icon_bg"
+        android:importantForAccessibility="no"
+        app:tint="@color/md_theme_error"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="לבטל את השיעור?"
+        android:textAlignment="viewStart"
+        android:textColor="@color/md_theme_onSurface"
+        android:textSize="22sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:lineSpacingMultiplier="1.2"
+        android:text="אתה בטוח שאתה רוצה לבטל את השיעור? השעות לא יישמרו ולא יישלחו לגיליון."
+        android:textAlignment="viewStart"
+        android:textColor="@color/text_body_muted"
+        android:textSize="16sp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDiscardYes"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="5dp"
+            android:layout_weight="1"
+            android:text="כן, בטל"
+            android:textColor="@color/md_theme_onError"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/md_theme_error"
+            app:cornerRadius="16dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDiscardNo"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:text="לא, חזור"
+            android:textColor="@color/md_theme_onSurface"
+            android:textSize="17sp"
+            app:cornerRadius="16dp"
+            app:strokeColor="@color/handle"/>
+    </LinearLayout>
+</LinearLayout>
