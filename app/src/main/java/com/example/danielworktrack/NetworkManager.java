@@ -8,13 +8,22 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Manages all HTTP communication with the Google Apps Script backend using OkHttp.
  */
 public class NetworkManager {
 
         private static final String WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqZIcXnamoGiKlBsBfHhuCzquALyayEG4n4Sh8gI5PtwPdVOJ7Xw5DXxGh46DOE5fV/exec";
-    private final OkHttpClient client = new OkHttpClient();
+    // Apps Script can take well over OkHttp's default 10s to answer (cold start).
+    // A timeout makes WorkManager retry a POST the script already saved, which
+    // duplicated rows in the sheet, so wait long enough for a real answer.
+    private final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build();
 
     /**
      * Asynchronously fetches the list of available work locations from the backend.

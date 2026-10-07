@@ -48,6 +48,14 @@ function doPost(e) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHIFTS_SHEET);
     var payload = JSON.parse(e.postData.contents);
 
+    // The app retries a POST when the answer is slow, even if this script
+    // already saved it. Treat a row with the same date, times and place as
+    // the same lesson and report success without appending it again.
+    if (isAlreadySaved(sheet, payload)) {
+      return ContentService.createTextOutput(JSON.stringify({"status": "success", "duplicate": true}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Function to handle empty fields
     var clean = function(val) {
       return (val === null || val === undefined || String(val).trim() === "") ? "ריק" : val;
@@ -78,6 +86,23 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** How many of the most recent rows to check for a repeated submission. */
+var DUPLICATE_LOOKBACK_ROWS = 50;
+
+function isAlreadySaved(sheet, payload) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return false;
+  var first = Math.max(2, lastRow - DUPLICATE_LOOKBACK_ROWS + 1);
+  var rows = sheet.getRange(first, 1, lastRow - first + 1, 4).getDisplayValues();
+  var key = [payload.date, payload.entryTime, payload.leaveTime, payload.place]
+    .map(function(v) { return String(v || "").trim(); }).join("|");
+  for (var i = 0; i < rows.length; i++) {
+    var rowKey = rows[i].map(function(v) { return String(v).trim(); }).join("|");
+    if (rowKey === key) return true;
+  }
+  return false;
 }
 
 /**
