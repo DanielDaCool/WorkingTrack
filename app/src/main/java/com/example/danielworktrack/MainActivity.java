@@ -303,6 +303,8 @@ public class MainActivity extends AppCompatActivity {
                             adapter.notifyDataSetChanged();
                             if (actvPlaces.getText().toString().isEmpty() && !storageManager.getPlaces().isEmpty()) {
                                 actvPlaces.setText(storageManager.getPlaces().get(0), false);
+                                boolean frc = isFrcShift(actvPlaces.getText().toString(), actvMeetingType.getText().toString());
+                                if (tilStudentCount != null) tilStudentCount.setVisibility(frc ? View.GONE : View.VISIBLE);
                             }
                         });
                     }
@@ -323,6 +325,18 @@ public class MainActivity extends AppCompatActivity {
             // Default to "לא היה"
             actvDediLed.setText("לא היה", false);
 
+            // FRC lessons don't record attendance: hide the field and don't require it.
+            Runnable updateStudentField = () -> {
+                boolean frc = isFrcShift(actvPlaces.getText().toString(), actvMeetingType.getText().toString());
+                if (tilStudentCount != null) {
+                    tilStudentCount.setVisibility(frc ? View.GONE : View.VISIBLE);
+                    if (frc) tilStudentCount.setError(null);
+                }
+            };
+            actvPlaces.setOnItemClickListener((parent, view, position, id) -> updateStudentField.run());
+            actvMeetingType.setOnItemClickListener((parent, view, position, id) -> updateStudentField.run());
+            updateStudentField.run();
+
             btnSubmit.setOnClickListener(v -> {
                 String selectedPlace = actvPlaces.getText().toString();
                 if (selectedPlace.isEmpty()) selectedPlace = "Default Office";
@@ -330,8 +344,10 @@ public class MainActivity extends AppCompatActivity {
                 String meetingType = actvMeetingType.getText().toString();
                 String dediLed = actvDediLed.getText().toString();
                 String studentCount = etStudentCount.getText() != null ? etStudentCount.getText().toString() : "";
+                boolean frc = isFrcShift(selectedPlace, meetingType);
+                if (frc) studentCount = "";
 
-                if (studentCount.trim().isEmpty()) {
+                if (!frc && studentCount.trim().isEmpty()) {
                     if (tilStudentCount != null) {
                         tilStudentCount.setError("חובה להזין מספר ילדים");
                     }
@@ -355,6 +371,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         bottomSheet.show();
+    }
+
+    /** Same rule as isFrcShift in apps-script/appBackend.gs: "frc" in the place or the meeting type. */
+    private static boolean isFrcShift(String place, String meetingType) {
+        String p = place == null ? "" : place.toLowerCase(Locale.ROOT);
+        String m = meetingType == null ? "" : meetingType.toLowerCase(Locale.ROOT);
+        return p.contains("frc") || m.contains("frc");
     }
 
     private void confirmDiscardShift(BottomSheetDialog bottomSheet) {

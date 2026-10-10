@@ -73,7 +73,7 @@ function doPost(e) {
       clean(payload.notes2),       // Column G: Additional Notes
       clean(payload.meetingType),  // Column H: סוג מפגש
       clean(payload.dediLed),      // Column I: דדי הוביל
-      clean(payload.studentCount), // Column J: מספר תלמידים שהגיעו
+      isFrcShift(payload.place, payload.meetingType) ? "" : clean(payload.studentCount), // Column J: מספר תלמידים שהגיעו (FRC: ריק)
       "",                          // Column K: (skipped - left blank)
       ""                           // Column L: set below as a formula
     ]);
