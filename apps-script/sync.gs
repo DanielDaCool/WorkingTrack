@@ -11,9 +11,11 @@
  *    5. הרץ "הפעל סנכרון יומי אוטומטי" פעם אחת ואשר הרשאות.
  *
  *  מה הסקריפט לא עושה לעולם:
- *    - לא כותב לעמודה A (סימון ה-X של איריס) ולא לעמודה B.
+ *    - לא כותב לעמודות A ו-B (סימון ה-X של איריס בעמודה B).
  *    - לא נוגע בשורה 2 (שורת הדוגמה).
- *    - לא משנה שורה שמסומנת ב-X.
+ *    - לא משנה שורה שמסומנת ב-X (בעמודה A או B).
+ *    - לא דורס תא שנערך ידנית ביעד. תא מתעדכן רק אם הערך במקור השתנה מאז
+ *      הסנכרון הקודם וגם התא ביעד עדיין מכיל את מה שהסקריפט כתב.
  *    - לא מוחק שורה ביעד שהסקריפט עצמו לא סנכרן קודם (שורות שהוקלדו ידנית בטוחות).
  *    - לא דורס נוסחאות.
  *    - לא כותב ערך שאינו ברשימה הנפתחת של אותה עמודה.
@@ -39,9 +41,14 @@ var CONFIG = {
   // כדי שלא יתפרש הפוך. '' = לכתוב רק את המספר.
   ATTENDANCE_PREFIX: 'הגיעו ',
 
-  // מה נכתב בעמודה I (סוג מפגש) למשמרת FRC. חייב להיות ברשימה הנפתחת ביעד,
-  // אחרת הכתיבה נחסמת ונרשמת ביומן. '' = להשאיר ריק.
-  FRC_MEETING_TYPE: 'frc- בבדיקה',
+  // מה נכתב בעמודה I (סוג מפגש) למשמרת FRC כשסוג המפגש באפליקציה הוא "frc".
+  // אם באפליקציה נבחר סוג אחר (שיעור/תגבור/...) נכתב הוא. חייב להיות ברשימה
+  // הנפתחת ביעד, אחרת הכתיבה נחסמת ונרשמת ביומן. '' = להשאיר ריק.
+  FRC_MEETING_TYPE: 'שיעור',
+
+  // שורה ביעד שאיריס שינתה בה את שעת ההתחלה עדיין מזוהה עם השמרת שלה, אם
+  // התאריך ובית הספר זהים וההפרש בשעת ההתחלה עד כמה דקות.
+  MATCH_START_TOLERANCE_MIN: 90,
 
   // שעת הסנכרון היומי האוטומטי (0-23, שעון ישראל).
   DAILY_SYNC_HOUR: 23,
@@ -64,9 +71,11 @@ var PLACE_MAP = {
   'נס ציונה (ארגמן)':  { yishuv: 'נס ציונה', school: 'ארגמן',  grade: '' }    // <<< כיתה
 };
 
-/** עמודה I ביעד מקבלת שיעור/תיגבור/אחר. FRC מטופל בנפרד דרך CONFIG.FRC_MEETING_TYPE. */
+/** סוג מפגש באפליקציה -> עמודה I ביעד (רשימה: שיעור, תגבור, תחרות, אסיפת הורים, אחר).
+ *  FRC מטופל דרך CONFIG.FRC_MEETING_TYPE. */
 var MEETING_TYPE_MAP = {
-  'שיעור': 'שיעור', 'תיגבור': 'תיגבור', 'תגבור': 'תיגבור',
+  'שיעור': 'שיעור', 'תיגבור': 'תגבור', 'תגבור': 'תגבור',
+  'תחרות': 'תחרות', 'אסיפת הורים': 'אסיפת הורים',
   'אחר': 'אחר', 'fll': ''
 };
 
@@ -75,18 +84,25 @@ var BLANK_TOKENS = ['ריק', 'ריק.', '-', 'n/a', 'na', 'none', 'null'];
 
 /** גיבוי בלבד. בפועל נקרא מאימות הנתונים של עמודה N ביעד. */
 var DEDI_FALLBACK = ['הוביל את השיעור', 'נכח בשיעור', 'לא היה',
-  'אירים באה לתגבר', 'אירים החליפה אותי', 'מני החליף אותי'];
+  'איריס באה לתגבר', 'איריס החליפה אותי', 'מני החליף אותי'];
+
+/** האפליקציה כותבת "אירים" (שגיאת כתיב). מתוקן לפני ההשוואה לרשימה ביעד. */
+var DEDI_ALIASES = { 'אירים': 'איריס' };
 
 /** מפתחות (תאריך|שעה) של שורות שהסקריפט סנכרן. רק הן יכולות להימחק כיתומות. */
 var OWNED_KEYS_PROP = 'OWNED_KEYS';
 
-/** קידומת ל-Script Properties: הערך האחרון שהסקריפט כתב לעמודה L בכל שורה (מפתח תאריך|שעה).
- *  ערך ביעד ששונה ממנו = עריכה ידנית, ולא נדרס. */
-var WRITTEN_L_PREFIX = 'L|';
+/** קידומת ל-Script Properties: לכל שורה (מפתח תאריך|שעה של המקור), טביעה של הערך
+ *  האחרון שהמקור נתן לכל עמודה. תא ביעד ששונה ממנה = עריכה ידנית, ולא נדרס. */
+var BASELINE_PREFIX = 'B|';
+/** הגרסה הקודמת שמרה רק את עמודה L. נקרא פעם אחת להמרה ואז נמחק. */
+var LEGACY_L_PREFIX = 'L|';
 
 // ======================= מבנה גיליון היעד ===================================
 
 var COL = { A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,I:9,J:10,K:11,L:12,M:13,N:14,O:15,P:16,Q:17 };
+/** עמודות שסימון בהן נועל את השורה. איריס מסמנת X בעמודה B ("עבר לדיווח מרוכז"). */
+var LOCK_COLS = ['A','B'];
 var LAST_COL = 17;
 var HEADER_ROW = 1;
 var FIRST_DATA_ROW = 3;                 // שורה 2 = שורת הדוגמה של איריס
@@ -247,28 +263,54 @@ function roundLessons(hours, mode) {
 }
 
 function mapMeetingType(raw, isFrc) {
-  if (isFrc) return { value: CONFIG.FRC_MEETING_TYPE, warn: null };
   var c = cleanVal(raw);
+  var n = normKey(c), mapped = null;
+  for (var k in MEETING_TYPE_MAP) if (normKey(k) === n) { mapped = MEETING_TYPE_MAP[k]; break; }
+  if (isFrc) return { value: mapped || CONFIG.FRC_MEETING_TYPE, warn: null };
   if (!c) return { value:'', warn:null };
-  var n = normKey(c);
-  for (var k in MEETING_TYPE_MAP) {
-    if (normKey(k) === n) {
-      return MEETING_TYPE_MAP[k]
-        ? { value: MEETING_TYPE_MAP[k], warn: null }
-        : { value:'', warn:'סוג מפגש "' + c + '" אינו שיעור/תיגבור - עמודה I נשארת ריקה' };
-    }
-  }
-  return { value:'', warn:'סוג מפגש לא מוכר: "' + c + '" - עמודה I נשארת ריקה' };
+  if (mapped === null) return { value:'', warn:'סוג מפגש לא מוכר: "' + c + '" - עמודה I נשארת ריקה' };
+  return mapped
+    ? { value: mapped, warn: null }
+    : { value:'', warn:'סוג מפגש "' + c + '" אינו ברשימה ביעד - עמודה I נשארת ריקה' };
 }
 
 function mapDedi(raw, allowed) {
   var c = cleanVal(raw);
   if (!c) return { value:'', warn:null };
+  for (var bad in DEDI_ALIASES) c = c.split(bad).join(DEDI_ALIASES[bad]);
   var list = (allowed && allowed.length) ? allowed : DEDI_FALLBACK;
-  for (var i = 0; i < list.length; i++) {
-    if (normKey(list[i]) === normKey(c)) return { value:list[i], warn:null };
-  }
+  var hit = findInList(list, c);
+  if (hit !== null) return { value:hit, warn:null };
   return { value:'', warn:'ערך "דדי הוביל" לא קיים ברשימה ביעד: "' + c + '" - לא נכתב' };
+}
+
+/** מחזיר את הערך כפי שהוא כתוב ברשימה (כולל רווחים בסוף), או null. */
+function findInList(list, v) {
+  var n = normKey(v);
+  for (var i = 0; i < list.length; i++) if (normKey(list[i]) === n) return list[i];
+  return null;
+}
+
+function isLocked(row) {
+  for (var i = 0; i < LOCK_COLS.length; i++) if (!isBlank(row[COL[LOCK_COLS[i]]-1])) return true;
+  return false;
+}
+
+function minutesOf(hhmm) { var p = hhmm.split(':'); return (+p[0]) * 60 + (+p[1]); }
+
+/** טביעה קצרה של ערך תא, מנורמלת לפי סוג העמודה. טקסט ארוך נשמר כ-MD5. */
+function fingerprint(name, v) {
+  if (isBlank(v)) return '';
+  var s;
+  if (name === 'D') { var d = parseDateValue(v); s = d ? fmtDate(d) : String(v).trim(); }
+  else if (name === 'J' || name === 'K') { s = parseTimeValue(v) || String(v).trim(); }
+  else if (name === 'L' || name === 'M') {
+    var x = Number(v); s = isFinite(x) ? String(Math.round(x * 10000) / 10000) : String(v).trim();
+  }
+  else s = normKey(v);
+  if (s.length <= 24) return s;
+  return '#' + Utilities.base64Encode(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, s, Utilities.Charset.UTF_8)).substring(0, 16);
 }
 
 function mapAttendance(raw) {
@@ -384,13 +426,14 @@ function readValidation(sheet, col, probeRow) {
     if (!rule) return null;
     var type = rule.getCriteriaType();
     var args = rule.getCriteriaValues();
+    // הערכים נשמרים בדיוק כפי שהם ברשימה (גם עם רווח בסוף), כדי שהכתיבה תעבור אימות.
     if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
-      return args[0].map(function (x) { return String(x).trim(); });
+      return args[0].map(function (x) { return String(x); });
     }
     if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
       return args[0].getValues()
-        .map(function (r) { return String(r[0]).trim(); })
-        .filter(function (x) { return x !== ''; });
+        .map(function (r) { return String(r[0]); })
+        .filter(function (x) { return x.trim() !== ''; });
     }
     return null;
   } catch (e) { return null; }
@@ -412,23 +455,35 @@ function saveOwnedKeys(set) {
   PropertiesService.getScriptProperties().setProperty(OWNED_KEYS_PROP, JSON.stringify(Object.keys(set)));
 }
 
-function loadWrittenL() {
+/** { מפתח שורה: { עמודה: טביעה } }. ממיר את שמירת L| הישנה בפעם הראשונה. */
+function loadBaselines() {
   var all = PropertiesService.getScriptProperties().getProperties();
-  var out = {};
-  for (var k in all) {
-    if (k.indexOf(WRITTEN_L_PREFIX) === 0) out[k.substring(WRITTEN_L_PREFIX.length)] = all[k];
+  var out = {}, k;
+  for (k in all) {
+    if (k.indexOf(BASELINE_PREFIX) === 0) {
+      try { out[k.substring(BASELINE_PREFIX.length)] = JSON.parse(all[k]); } catch (e) {}
+    }
+  }
+  for (k in all) {
+    if (k.indexOf(LEGACY_L_PREFIX) !== 0) continue;
+    var key = k.substring(LEGACY_L_PREFIX.length);
+    out[key] = out[key] || {};
+    if (out[key].L === undefined) out[key].L = fingerprint('L', all[k]);
   }
   return out;
 }
 
-/** שמירה כמאפיין נפרד לכל שורה (לא חוסם על מגבלת 9KB לערך). מפתחות שנעלמו מהמקור נמחקים. */
-function saveWrittenL(map, liveKeys) {
+/** מאפיין נפרד לכל שורה (מגבלת 9KB לערך). שורות שנעלמו מהמקור והשמירה הישנה נמחקות. */
+function saveBaselines(map, liveKeys) {
   var props = PropertiesService.getScriptProperties();
-  var toSet = {};
-  for (var k in map) {
-    if (liveKeys[k]) toSet[WRITTEN_L_PREFIX + k] = String(map[k]);
-    else props.deleteProperty(WRITTEN_L_PREFIX + k);
+  var all = props.getProperties(), toSet = {}, k;
+  for (k in all) {
+    if (k.indexOf(LEGACY_L_PREFIX) === 0) props.deleteProperty(k);
+    else if (k.indexOf(BASELINE_PREFIX) === 0 && !liveKeys[k.substring(BASELINE_PREFIX.length)]) {
+      props.deleteProperty(k);
+    }
   }
+  for (k in map) if (liveKeys[k]) toSet[BASELINE_PREFIX + k] = JSON.stringify(map[k]);
   props.setProperties(toSet, false);
 }
 
@@ -517,25 +572,61 @@ function execute(dryRun) {
       } else index[kk] = i;
     }
 
-    // ---------- מחיקת שורות יתומות (לפני שיבוץ, כדי שהשורה תתפנה לשימוש חוזר) ----------
-    // שורה נמחקת רק אם כל אלה מתקיימים:
-    //   - השורה לא נעולה (אין X בעמודה A)
-    //   - המפתח שלה (תאריך + שעת התחלה) סונכרן בעבר ע"י הסקריפט (OWNED_KEYS)
-    //   - המפתח כבר לא קיים באף רשומת מקור נוכחית (השמרת נמחקה/שונתה באפליקציה)
-    // שורה שהוקלדה ידנית ביעד לעולם לא נמצאת ב-OWNED_KEYS, ולכן לא תימחק.
-    // נמחקים רק התאים C-Q, כך שעמודה B ונוסחאות בשורות אחרות לא נפגעות.
+    // ---------- שיוך רשומות מקור לשורות ביעד ----------
+    // 1. התאמה מדויקת לפי תאריך + שעת התחלה.
+    // 2. אחרת: שורה שלא שויכה, באותו תאריך ובאותו בית ספר, ששעת ההתחלה שלה
+    //    רחוקה עד MATCH_START_TOLERANCE_MIN דקות (איריס תיקנה את השעה ידנית).
     var owned = loadOwnedKeys();
-    var writtenL = loadWrittenL();
+    var baselines = loadBaselines();
     var liveKeys = {};
     for (var lk = 0; lk < records.length; lk++) liveKeys[records[lk].key] = true;
+
+    var rowKeys = [];
+    for (var rk = 0; rk < dVals.length; rk++) {
+      var rd = parseDateValue(dVals[rk][COL.D-1]), rt = parseTimeValue(dVals[rk][COL.J-1]);
+      rowKeys.push(rd && rt ? rowKey(rd, rt) : null);
+    }
+
+    var claimed = {}, assign = {};
+    for (var m1 = 0; m1 < records.length; m1++) {
+      var ti = index[records[m1].key];
+      if (ti !== undefined && !claimed[ti]) { claimed[ti] = true; assign[m1] = ti; }
+    }
+    for (var m2 = 0; m2 < records.length; m2++) {
+      if (assign[m2] !== undefined) continue;
+      var rv = records[m2].values, best = -1, bestDiff = Infinity;
+      var srcMin = minutesOf(rv.J);
+      for (var di = 0; di < dVals.length; di++) {
+        if (claimed[di] || !rowKeys[di] || liveKeys[rowKeys[di]]) continue;
+        var dRow = dVals[di];
+        if (fmtDate(parseDateValue(dRow[COL.D-1])) !== fmtDate(rv.D)) continue;
+        var sameSchool = rv.G ? normKey(dRow[COL.G-1]) === normKey(rv.G)
+                              : normKey(dRow[COL.F-1]) === normKey(rv.F);
+        if (!sameSchool) continue;
+        var diff = Math.abs(minutesOf(parseTimeValue(dRow[COL.J-1])) - srcMin);
+        if (diff <= CONFIG.MATCH_START_TOLERANCE_MIN && diff < bestDiff) { best = di; bestDiff = diff; }
+      }
+      if (best !== -1) {
+        claimed[best] = true; assign[m2] = best;
+        if (!baselines[records[m2].key] && baselines[rowKeys[best]]) {
+          baselines[records[m2].key] = baselines[rowKeys[best]];   // שעת ההתחלה שונתה באפליקציה
+        }
+        log.push('מקור ' + records[m2].srcRow + ' (' + records[m2].key + ') שויך לשורה ' +
+          (best+FIRST_DATA_ROW) + ' ביעד, ששעת ההתחלה בה ' + parseTimeValue(dVals[best][COL.J-1]) + '.');
+      }
+    }
+
+    // ---------- מחיקת שורות יתומות (לפני שיבוץ, כדי שהשורה תתפנה לשימוש חוזר) ----------
+    // שורה נמחקת רק אם כל אלה מתקיימים:
+    //   - השורה לא נעולה (אין X בעמודה A או B)
+    //   - לא שויכה לאף רשומת מקור
+    //   - המפתח שלה (תאריך + שעת התחלה) סונכרן בעבר ע"י הסקריפט (OWNED_KEYS)
+    // שורה שהוקלדה ידנית ביעד לעולם לא נמצאת ב-OWNED_KEYS, ולכן לא תימחק.
+    // נמחקים רק התאים C-Q, כך שעמודה B ונוסחאות בשורות אחרות לא נפגעות.
     var orphanRows = [];
     for (var oi = 0; oi < dVals.length; oi++) {
-      if (!isBlank(dVals[oi][COL.A-1])) continue;
-      var od = parseDateValue(dVals[oi][COL.D-1]);
-      var ot = parseTimeValue(dVals[oi][COL.J-1]);
-      if (!od || !ot) continue;
-      var ok2 = rowKey(od, ot);
-      if (liveKeys[ok2]) continue;
+      if (claimed[oi] || !rowKeys[oi] || isLocked(dVals[oi])) continue;
+      var ok2 = rowKeys[oi];
       if (!owned[ok2]) {
         log.push('שורה ' + (oi+FIRST_DATA_ROW) + ' (' + ok2 + ') לא קיימת במקור ולא נוצרה ע"י הסקריפט - ' +
           'נשארת כמו שהיא.');
@@ -543,7 +634,6 @@ function execute(dryRun) {
       }
       log.push('נמחקה שורה יתומה ' + (oi+FIRST_DATA_ROW) + ' (' + ok2 + ') - כבר לא קיימת במקור.');
       for (var zc = COL.C-1; zc < LAST_COL; zc++) { dVals[oi][zc] = ''; dForm[oi][zc] = ''; }
-      delete index[ok2];
       delete owned[ok2];
       orphanRows.push(oi + FIRST_DATA_ROW);
     }
@@ -555,17 +645,21 @@ function execute(dryRun) {
     }
 
     function rowIsFree(i) {
+      if (claimed[i]) return false;
       for (var c2 = 0; c2 < LAST_COL; c2++) if (!isBlank(dVals[i][c2])) return false;
       return true;
     }
 
     // ---------- שיבוץ ----------
-    var edits = [], newRows = [], nCreated = 0, nUpdated = 0, nLocked = 0;
+    // לכל תא: אם הערך החדש שווה לטביעה השמורה, המקור לא השתנה - לא נוגעים (גם אם
+    // התא ביעד שונה, כי זו עריכה ידנית). אם המקור השתנה, כותבים רק אם התא ביעד
+    // ריק או עדיין מכיל את הערך הקודם. תא בלי טביעה שמורה ושונה מהמקור נחשב ידני.
+    var edits = [], newRows = [], nCreated = 0, nUpdated = 0, nLocked = 0, nManual = 0;
     var allCols = SYNC_COLS.concat(SEED_ONLY);
 
     for (var n2 = 0; n2 < records.length; n2++) {
       var rec2 = records[n2];
-      var t = index[rec2.key];
+      var t = assign[n2];
       var isNew = (t === undefined);
 
       if (isNew) {
@@ -576,46 +670,60 @@ function execute(dryRun) {
           dVals.push(blank); dForm.push(blank2);
           t = dVals.length - 1;
         }
+        claimed[t] = true;
       }
 
-      if (!isBlank(dVals[t][COL.A-1])) {
+      if (isLocked(dVals[t])) {
         nLocked++;
-        log.push('שורה נעולה (X) ביעד ' + (t+FIRST_DATA_ROW) + ' - לא שונתה. מקור שורה ' + rec2.srcRow + '.');
         continue;
       }
 
-      var touched = false;
+      var base = baselines[rec2.key] || {};
+      var touched = false, kept = [];
       for (var ci = 0; ci < allCols.length; ci++) {
         var name = allCols[ci], col = COL[name];
         var cur = dVals[t][col-1], nv = rec2.values[name];
         if (nv === undefined) continue;
-        if (isBlank(nv) && !isBlank(cur) && !rec2.clearable[name]) continue;
         if (SEED_ONLY.indexOf(name) !== -1 && !isBlank(cur)) continue;
         if (!isBlank(dForm[t][col-1])) {
           log.push('נוסחה בתא ' + colLetter(col) + (t+FIRST_DATA_ROW) + ' - לא נדרסה.');
           continue;
         }
         var allow = validators[name];
-        if (allow && !isBlank(nv) && allow.indexOf(String(nv)) === -1) {
-          log.push('נחסם - "' + nv + '" אינו ברשימה הנפתחת של עמודה ' + colLetter(col) +
-                   ' (שורה ' + (t+FIRST_DATA_ROW) + '). תקן את המיפוי.');
-          continue;
-        }
-        if (name === 'L') {
-          var prevL = writtenL[rec2.key];
-          if (prevL !== undefined && !isBlank(cur) && !sameValue('L', cur, prevL)) {
-            log.push('עמודה L בשורה ' + (t+FIRST_DATA_ROW) + ' נערכה ידנית (' + cur + ') - לא נדרסה.');
+        if (allow && !isBlank(nv)) {
+          var canon = findInList(allow, nv);
+          if (canon === null) {
+            log.push('נחסם - "' + nv + '" אינו ברשימה הנפתחת של עמודה ' + colLetter(col) +
+                     ' (שורה ' + (t+FIRST_DATA_ROW) + '). תקן את המיפוי.');
             continue;
           }
-          writtenL[rec2.key] = nv;
+          nv = canon;
         }
-        if (sameValue(name, cur, nv)) continue;
+
+        var fNew = fingerprint(name, nv), fCur = fingerprint(name, cur), b = base[name];
+        if (fCur === fNew) { base[name] = fNew; continue; }
+        if (b === undefined) {
+          if (!isBlank(cur)) { kept.push(colLetter(col)); base[name] = fNew; continue; }
+        } else {
+          if (fNew === b) continue;                       // המקור לא השתנה
+          if (!isBlank(cur) && fCur !== b) {              // המקור השתנה, אבל גם התא נערך ידנית
+            kept.push(colLetter(col)); base[name] = fNew; continue;
+          }
+        }
+        if (isBlank(nv) && !isBlank(cur) && !rec2.clearable[name]) continue;
+
+        base[name] = fNew;
         dVals[t][col-1] = nv;
         edits.push({ row: t+FIRST_DATA_ROW, col: col, val: nv });
         touched = true;
       }
+      baselines[rec2.key] = base;
 
-      index[rec2.key] = t;
+      if (kept.length) {
+        nManual++;
+        log.push('שורה ' + (t+FIRST_DATA_ROW) + ' - עריכה ידנית נשמרה בעמודות ' + kept.join(', ') +
+                 ' (מקור ' + rec2.srcRow + ').');
+      }
       owned[rec2.key] = true;
       if (isNew) { nCreated++; newRows.push(t+FIRST_DATA_ROW);
         log.push('חדש - מקור ' + rec2.srcRow + ' -> יעד ' + (t+FIRST_DATA_ROW)); }
@@ -639,12 +747,12 @@ function execute(dryRun) {
       var keep = {};
       for (var ok in owned) if (liveKeys[ok]) keep[ok] = true;
       saveOwnedKeys(keep);
-      saveWrittenL(writtenL, liveKeys);
+      saveBaselines(baselines, liveKeys);
     }
 
     log.unshift('רשומות תקינות: ' + records.length + ' | דילוגים: ' + nSkipped +
-      ' | חדשות: ' + nCreated + ' | עודכנו: ' + nUpdated + ' | נעולות: ' + nLocked +
-      ' | נמחקו (יתומות): ' + orphanRows.length + ' | תאים: ' + edits.length);
+      ' | חדשות: ' + nCreated + ' | עודכנו: ' + nUpdated + ' | נעולות (X): ' + nLocked +
+      ' | עם עריכה ידנית: ' + nManual + ' | נמחקו (יתומות): ' + orphanRows.length + ' | תאים: ' + edits.length);
     log.unshift(dryRun ? '*** בדיקה בלבד. לא נכתב כלום. ***' : '*** סנכרון בוצע ***');
     report(dryRun, log);
 
