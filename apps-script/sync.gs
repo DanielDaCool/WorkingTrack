@@ -330,7 +330,7 @@ function buildRecord(src, dediAllowed) {
     K: !to,
     L: hours === null, M: hours === null,
     N: isBlankish(src.dedi),
-    O: isBlankish(src.kids),
+    O: isFrc || isBlankish(src.kids),   // FRC: לא כותבים כמה ילדים הגיעו, וגם מנקים ערך קיים
     P: isBlankish(src.what),
     Q: isBlankish(src.remember)
   };
@@ -350,7 +350,7 @@ function buildRecord(src, dediAllowed) {
       L: billed,
       M: hours === null ? '' : roundLessons(hours, CONFIG.ACTUAL_ROUNDING),
       N: dd.value,
-      O: mapAttendance(src.kids),
+      O: isFrc ? '' : mapAttendance(src.kids),
       P: cleanVal(src.what),
       Q: cleanVal(src.remember)
     }
