@@ -3,14 +3,15 @@ var PLACES_SHEET = "Places";
 
 /**
  * Column L (חישוב משכורת) formula, in R1C1 so it can be set on any row.
- * Billed hours = worked hours (FLL) or half the worked hours (FRC), rounded
- * to the nearest quarter-hour, times the hourly rate.
- * The rates live in the Shifts sheet itself: P1 = FLL rate, P2 = FRC rate.
+ * Billed hours = worked hours (FLL, capped at P3) or half the worked hours
+ * (FRC), rounded to the nearest quarter-hour, times the hourly rate.
+ * The values live in the Shifts sheet itself: P1 = FLL rate, P2 = FRC rate,
+ * P3 = max billed FLL hours per lesson.
  * Change them there, not here.
  */
 var SALARY_FORMULA_R1C1 =
   '=IF(ISNUMBER(RC5),IF(ISNUMBER(SEARCH("frc",RC4&RC8)),' +
-  'MROUND(RC5/2,0.25)*R2C16,MROUND(RC5,0.25)*R1C16),"")';
+  'MROUND(RC5/2,0.25)*R2C16,MIN(MROUND(RC5,0.25),R3C16)*R1C16),"")';
 
 /**
  * Handles GET requests to fetch the list of places dynamically.

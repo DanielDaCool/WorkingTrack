@@ -46,6 +46,10 @@ var CONFIG = {
   // שעת הסנכרון היומי האוטומטי (0-23, שעון ישראל).
   DAILY_SYNC_HOUR: 23,
 
+  // מקסימום שעות לחיוב הלקוח (עמודה L) בשיעור FLL / לא-FRC. ערך שהוקלד ידנית
+  // בעמודה L ביעד לא נדרס, כך שאפשר לחרוג מהתקרה ידנית.
+  FLL_MAX_BILLED_HOURS: 4,
+
   DRY_RUN: false
 };
 
@@ -75,6 +79,10 @@ var DEDI_FALLBACK = ['הוביל את השיעור', 'נכח בשיעור', 'ל�
 
 /** מפתחות (תאריך|שעה) של שורות שהסקריפט סנכרן. רק הן יכולות להימחק כיתומות. */
 var OWNED_KEYS_PROP = 'OWNED_KEYS';
+
+/** קידומת ל-Script Properties: הערך האחרון שהסקריפט כתב לעמודה L בכל שורה (מפתח תאריך|שעה).
+ *  ערך ביעד ששונה ממנו = עריכה ידנית, ולא נדרס. */
+var WRITTEN_L_PREFIX = 'L|';
 
 // ======================= מבנה גיליון היעד ===================================
 
@@ -308,7 +316,13 @@ function buildRecord(src, dediAllowed) {
   if (dd.warn) warn.push(dd.warn);
 
   // FRC: בפועל (M) = כל השעות שעבד. לחיוב הלקוח (L) = מחצית.
+  // FLL (כל מה שאינו FRC): לחיוב הלקוח (L) לא יותר מ-FLL_MAX_BILLED_HOURS.
   var billHours = (hours !== null && isFrc) ? hours * 0.5 : hours;
+  var billed = billHours === null ? '' : roundLessons(billHours, CONFIG.BILLING_ROUNDING);
+  if (!isFrc && billed !== '' && billed > CONFIG.FLL_MAX_BILLED_HOURS) {
+    warn.push('FLL - ' + billed + ' שעות לחיוב הוגבלו ל-' + CONFIG.FLL_MAX_BILLED_HOURS + ' (עמודה L)');
+    billed = CONFIG.FLL_MAX_BILLED_HOURS;
+  }
 
   // עמודות שהמקור שלהן ריק ("ריק" או תא ריק) - ביעד הן מתרוקנות גם אם היה בהן ערך.
   // ערך שנחסם בגלל מיפוי (למשל "דדי הוביל" לא מוכר) לא מרוקן תא קיים.
@@ -333,7 +347,7 @@ function buildRecord(src, dediAllowed) {
       I: mt.value,
       J: from,
       K: to || '',
-      L: billHours === null ? '' : roundLessons(billHours, CONFIG.BILLING_ROUNDING),
+      L: billed,
       M: hours === null ? '' : roundLessons(hours, CONFIG.ACTUAL_ROUNDING),
       N: dd.value,
       O: mapAttendance(src.kids),
@@ -396,6 +410,26 @@ function loadOwnedKeys() {
 
 function saveOwnedKeys(set) {
   PropertiesService.getScriptProperties().setProperty(OWNED_KEYS_PROP, JSON.stringify(Object.keys(set)));
+}
+
+function loadWrittenL() {
+  var all = PropertiesService.getScriptProperties().getProperties();
+  var out = {};
+  for (var k in all) {
+    if (k.indexOf(WRITTEN_L_PREFIX) === 0) out[k.substring(WRITTEN_L_PREFIX.length)] = all[k];
+  }
+  return out;
+}
+
+/** שמירה כמאפיין נפרד לכל שורה (לא חוסם על מגבלת 9KB לערך). מפתחות שנעלמו מהמקור נמחקים. */
+function saveWrittenL(map, liveKeys) {
+  var props = PropertiesService.getScriptProperties();
+  var toSet = {};
+  for (var k in map) {
+    if (liveKeys[k]) toSet[WRITTEN_L_PREFIX + k] = String(map[k]);
+    else props.deleteProperty(WRITTEN_L_PREFIX + k);
+  }
+  props.setProperties(toSet, false);
 }
 
 // ============================ הרצה ==========================================
@@ -491,6 +525,7 @@ function execute(dryRun) {
     // שורה שהוקלדה ידנית ביעד לעולם לא נמצאת ב-OWNED_KEYS, ולכן לא תימחק.
     // נמחקים רק התאים C-Q, כך שעמודה B ונוסחאות בשורות אחרות לא נפגעות.
     var owned = loadOwnedKeys();
+    var writtenL = loadWrittenL();
     var liveKeys = {};
     for (var lk = 0; lk < records.length; lk++) liveKeys[records[lk].key] = true;
     var orphanRows = [];
@@ -566,6 +601,14 @@ function execute(dryRun) {
                    ' (שורה ' + (t+FIRST_DATA_ROW) + '). תקן את המיפוי.');
           continue;
         }
+        if (name === 'L') {
+          var prevL = writtenL[rec2.key];
+          if (prevL !== undefined && !isBlank(cur) && !sameValue('L', cur, prevL)) {
+            log.push('עמודה L בשורה ' + (t+FIRST_DATA_ROW) + ' נערכה ידנית (' + cur + ') - לא נדרסה.');
+            continue;
+          }
+          writtenL[rec2.key] = nv;
+        }
         if (sameValue(name, cur, nv)) continue;
         dVals[t][col-1] = nv;
         edits.push({ row: t+FIRST_DATA_ROW, col: col, val: nv });
@@ -596,6 +639,7 @@ function execute(dryRun) {
       var keep = {};
       for (var ok in owned) if (liveKeys[ok]) keep[ok] = true;
       saveOwnedKeys(keep);
+      saveWrittenL(writtenL, liveKeys);
     }
 
     log.unshift('רשומות תקינות: ' + records.length + ' | דילוגים: ' + nSkipped +

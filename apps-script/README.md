@@ -43,6 +43,7 @@ Deploy > Manage deployments > עיפרון (Edit) > Version: New version > Deplo
 נמצאים בגיליון `Shifts`, לא בקוד:
 - `P1` - תעריף FLL/רגיל (כרגע 100).
 - `P2` - תעריף FRC (כרגע 80).
+- `P3` - מקסימום שעות לחיוב בשיעור FLL (כרגע 4). אותה תקרה מוגדרת ב-sync.gs כ-`FLL_MAX_BILLED_HOURS` לעמודה L בדוח; ערך שהוקלד ידנית בעמודה L בדוח לא נדרס.
 
 סה"כ משכורת: `Shifts!M2` (`=SUM(L:L)`).
 
