@@ -50,6 +50,11 @@ var CONFIG = {
   // התאריך ובית הספר זהים וההפרש בשעת ההתחלה עד כמה דקות.
   MATCH_START_TOLERANCE_MIN: 90,
 
+  // עמודה ב-Shifts שמסומן בה "שולם" לשמרת ששורתה בדוח מסומנת ב-X (איריס כבר
+  // העבירה אותה לתשלום). מזוהה לפי הכותרת. אם אין עמודה כזו - מדלגים.
+  PAID_HEADER: 'שולם',
+  PAID_MARK: 'שולם',
+
   // שעת הסנכרון היומי האוטומטי (0-23, שעון ישראל).
   DAILY_SYNC_HOUR: 23,
 
@@ -655,6 +660,7 @@ function execute(dryRun) {
     // התא ביעד שונה, כי זו עריכה ידנית). אם המקור השתנה, כותבים רק אם התא ביעד
     // ריק או עדיין מכיל את הערך הקודם. תא בלי טביעה שמורה ושונה מהמקור נחשב ידני.
     var edits = [], newRows = [], nCreated = 0, nUpdated = 0, nLocked = 0, nManual = 0;
+    var paidRows = {};   // שורת מקור -> true אם השורה בדוח מסומנת X
     var allCols = SYNC_COLS.concat(SEED_ONLY);
 
     for (var n2 = 0; n2 < records.length; n2++) {
@@ -675,6 +681,7 @@ function execute(dryRun) {
 
       if (isLocked(dVals[t])) {
         nLocked++;
+        paidRows[rec2.srcRow] = true;
         continue;
       }
 
@@ -743,6 +750,9 @@ function execute(dryRun) {
       }
       SpreadsheetApp.flush();
 
+      var nPaidChanged = writePaidColumn(src, sVals, paidRows, log);
+      if (nPaidChanged) log.push('עמודת "' + CONFIG.PAID_HEADER + '" ב-Shifts עודכנה ב-' + nPaidChanged + ' שורות.');
+
       // רק מפתחות שעדיין קיימים במקור נשמרים, כדי שהרשימה לא תגדל ללא הגבלה.
       var keep = {};
       for (var ok in owned) if (liveKeys[ok]) keep[ok] = true;
@@ -757,6 +767,26 @@ function execute(dryRun) {
     report(dryRun, log);
 
   } finally { lock.releaseLock(); }
+}
+
+/** כותב "שולם" / ריק בעמודת PAID_HEADER ב-Shifts לכל שורה. מחזיר כמה שורות השתנו. */
+function writePaidColumn(src, sVals, paidRows, log) {
+  var pc = -1;
+  for (var c = 0; c < sVals[0].length; c++) {
+    if (normKey(sVals[0][c]).indexOf(normKey(CONFIG.PAID_HEADER)) !== -1) { pc = c; break; }
+  }
+  if (pc === -1) {
+    log.push('הערה: אין עמודה "' + CONFIG.PAID_HEADER + '" ב-Shifts - סימון התשלום דולג.');
+    return 0;
+  }
+  var out = [], changed = 0;
+  for (var r = 1; r < sVals.length; r++) {
+    var want = paidRows[r + 1] ? CONFIG.PAID_MARK : '';
+    if (String(sVals[r][pc]).trim() !== want) changed++;
+    out.push([want]);
+  }
+  if (changed) src.getRange(2, pc + 1, out.length, 1).setValues(out);
+  return changed;
 }
 
 /** השוואה מודעת לסוג העמודה. בלעדיה הסקריפט היה כותב מחדש בכל הרצה. */
