@@ -319,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
             actvMeetingType.setText("שיעור", false);
 
             // Initialize Dedi Led Dropdown
-            String[] dediLedOptions = {"הוביל את השיעור", "נכח בשיעור", "לא היה", "אירים באה לתגבר", "אירים החליפה אותי", "מני החליף אותי"};
+            String[] dediLedOptions = {"הוביל את השיעור", "נכח בשיעור", "לא היה", "איריס באה לתגבר", "איריס החליפה אותי", "מני החליף אותי"};
             ArrayAdapter<String> dediLedAdapter = new ArrayAdapter<>(this, R.layout.item_spinner_rtl, dediLedOptions);
             actvDediLed.setAdapter(dediLedAdapter);
             // Default to "לא היה"
