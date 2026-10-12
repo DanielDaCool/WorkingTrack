@@ -2,16 +2,20 @@ var SHIFTS_SHEET = "Shifts";
 var PLACES_SHEET = "Places";
 
 /**
- * Column L (חישוב משכורת) formula, in R1C1 so it can be set on any row.
+ * Column K (שעות לחיוב) formula, in R1C1 so it can be set on any row.
  * Billed hours = worked hours (FLL, capped at P3) or half the worked hours
- * (FRC), rounded to the nearest quarter-hour, times the hourly rate.
+ * (FRC), rounded to the nearest quarter-hour. Column E keeps the actual hours.
  * The values live in the Shifts sheet itself: P1 = FLL rate, P2 = FRC rate,
  * P3 = max billed FLL hours per lesson.
  * Change them there, not here.
  */
-var SALARY_FORMULA_R1C1 =
+var BILLED_HOURS_FORMULA_R1C1 =
   '=IF(ISNUMBER(RC5),IF(ISNUMBER(SEARCH("frc",RC4&RC8)),' +
-  'MROUND(RC5/2,0.25)*R2C16,MIN(MROUND(RC5,0.25),R3C16)*R1C16),"")';
+  'MROUND(RC5/2,0.25),MIN(MROUND(RC5,0.25),R3C16)),"")';
+
+/** Column L (חישוב משכורת): billed hours (K) times the FLL or FRC rate. */
+var SALARY_FORMULA_R1C1 =
+  '=IF(ISNUMBER(RC11),RC11*IF(ISNUMBER(SEARCH("frc",RC4&RC8)),R2C16,R1C16),"")';
 
 /**
  * Handles GET requests to fetch the list of places dynamically.
@@ -74,10 +78,11 @@ function doPost(e) {
       clean(payload.meetingType),  // Column H: סוג מפגש
       clean(payload.dediLed),      // Column I: דדי הוביל
       isFrcShift(payload.place, payload.meetingType) ? "" : clean(payload.studentCount), // Column J: מספר תלמידים שהגיעו (FRC: ריק)
-      "",                          // Column K: (skipped - left blank)
-      ""                           // Column L: set below as a formula
+      "",                          // Column K: שעות לחיוב, set below as a formula
+      ""                           // Column L: חישוב משכורת, set below as a formula
     ]);
-    sheet.getRange(sheet.getLastRow(), 12).setFormulaR1C1(SALARY_FORMULA_R1C1);
+    sheet.getRange(sheet.getLastRow(), 11, 1, 2)
+      .setFormulasR1C1([[BILLED_HOURS_FORMULA_R1C1, SALARY_FORMULA_R1C1]]);
 
     return ContentService.createTextOutput(JSON.stringify({"status": "success"}))
       .setMimeType(ContentService.MimeType.JSON);
