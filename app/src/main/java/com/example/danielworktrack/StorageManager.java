@@ -17,6 +17,7 @@ public class StorageManager {
     private static final String PREF_NAME = "WorkTrackPrefs";
     private static final String KEY_CLOCK_IN_TIME = "clockInTime";
     private static final String KEY_CACHED_PLACES = "cachedPlaces";
+    private static final String KEY_STUDENT_COUNT = "studentCount";
 
     private final SharedPreferences prefs;
 
@@ -33,7 +34,21 @@ public class StorageManager {
     }
 
     public void clearActiveShift() {
-        prefs.edit().putLong(KEY_CLOCK_IN_TIME, -1).apply();
+        prefs.edit().putLong(KEY_CLOCK_IN_TIME, -1).remove(KEY_STUDENT_COUNT).apply();
+    }
+
+    /** Student count entered during the active shift; empty string clears it. */
+    public void saveStudentCount(String count) {
+        if (count == null || count.trim().isEmpty()) {
+            prefs.edit().remove(KEY_STUDENT_COUNT).apply();
+        } else {
+            prefs.edit().putString(KEY_STUDENT_COUNT, count.trim()).apply();
+        }
+    }
+
+    /** Returns the saved student count for the active shift, or "" if none. */
+    public String getStudentCount() {
+        return prefs.getString(KEY_STUDENT_COUNT, "");
     }
 
     public void savePlaces(String jsonArrayString) {

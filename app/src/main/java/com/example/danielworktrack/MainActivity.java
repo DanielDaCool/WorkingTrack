@@ -8,6 +8,7 @@ import android.graphics.drawable.InsetDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
@@ -35,6 +36,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
 
@@ -111,12 +113,19 @@ public class MainActivity extends AppCompatActivity {
 
         btnAction.setOnClickListener(v -> {
             if (storageManager.getClockInTime() == -1) {
+                // Clock-in is saved first, so dismissing the count dialog never loses it.
                 storageManager.saveClockInTime(System.currentTimeMillis());
                 updateUIState();
                 Toast.makeText(this, "נכנסת לשיעור", Toast.LENGTH_SHORT).show();
+                showStudentCountDialog();
             } else {
                 showCheckoutDialog();
             }
+        });
+
+        // While in a lesson, tapping the status card sets/changes the student count.
+        findViewById(R.id.cardStatus).setOnClickListener(v -> {
+            if (storageManager.getClockInTime() != -1) showStudentCountDialog();
         });
     }
 
@@ -173,7 +182,9 @@ public class MainActivity extends AppCompatActivity {
             tvStatus.setText("בשיעור");
             tvStatus.setTextColor(teal);
             viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(teal));
-            tvEnteredAt.setText("נכנסת ב-" + timeFormat.format(clockInTime));
+            String count = storageManager.getStudentCount();
+            tvEnteredAt.setText("נכנסת ב-" + timeFormat.format(clockInTime)
+                    + (count.isEmpty() ? "" : " · " + count + " ילדים"));
             tvEnteredAt.setVisibility(View.VISIBLE);
         }
         startTimer();
@@ -189,6 +200,33 @@ public class MainActivity extends AppCompatActivity {
             button.setIconTint(ColorStateList.valueOf(out ? onTeal : onDanger));
             btnAction.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
         }).start();
+    }
+
+    /** Optional prompt for how many students arrived; "דלג" or dismissing keeps the shift as is. */
+    private void showStudentCountDialog() {
+        int pad = Math.round(24 * getResources().getDisplayMetrics().density);
+        TextInputLayout til = new TextInputLayout(this);
+        til.setHint("מספר ילדים");
+        til.setPadding(pad, pad / 2, pad, 0);
+        TextInputEditText et = new TextInputEditText(til.getContext());
+        et.setInputType(InputType.TYPE_CLASS_NUMBER);
+        et.setText(storageManager.getStudentCount());
+        til.addView(et);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("כמה ילדים הגיעו?")
+                .setView(til)
+                .setPositiveButton("שמירה", (d, w) -> {
+                    storageManager.saveStudentCount(et.getText() != null ? et.getText().toString() : "");
+                    updateUIState();
+                })
+                .setNegativeButton("דלג", null)
+                .create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
+        dialog.show();
+        et.requestFocus();
     }
 
     private void fetchPlacesDynamic() {
@@ -262,6 +300,7 @@ public class MainActivity extends AppCompatActivity {
             etNotes2 != null && btnSubmit != null && tvDuration != null && 
             tvError != null) {
             tvEntry.setText(timeFormat.format(entryCal.getTime()));
+            etStudentCount.setText(storageManager.getStudentCount());
             tvLeave.setText(timeFormat.format(leaveCal.getTime()));
 
             // Initial validation check
